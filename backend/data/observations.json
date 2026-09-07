@@ -1,0 +1,688 @@
+[
+  {
+    "id": "ARGO-2902487",
+    "instrument_type": "ARGO",
+    "latitude": 12.4,
+    "longitude": 65.5,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 30.2219,
+        "salinity": 35.8491,
+        "chlorophyll": 0.2684
+      },
+      {
+        "depth": 10.0,
+        "temperature": 29.3135,
+        "salinity": 35.8009,
+        "chlorophyll": 0.3288
+      },
+      {
+        "depth": 25.0,
+        "temperature": 27.7785,
+        "salinity": 35.7148,
+        "chlorophyll": 0.3786
+      },
+      {
+        "depth": 50.0,
+        "temperature": 25.2,
+        "salinity": 35.6296,
+        "chlorophyll": 0.3771
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.8404,
+        "salinity": 35.5486,
+        "chlorophyll": 0.2132
+      },
+      {
+        "depth": 200.0,
+        "temperature": 14.85,
+        "salinity": 35.4285,
+        "chlorophyll": 0.0273
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.3053,
+        "salinity": 35.1161,
+        "chlorophyll": 0.0244
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.2475,
+        "salinity": 34.8359,
+        "chlorophyll": 0.0265
+      },
+      {
+        "depth": 2000.0,
+        "temperature": 3.0067,
+        "salinity": 34.6512,
+        "chlorophyll": 0.0272
+      }
+    ]
+  },
+  {
+    "id": "ARGO-2902488",
+    "instrument_type": "ARGO",
+    "latitude": 8.1,
+    "longitude": 70.2,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 30.8161,
+        "salinity": 35.763,
+        "chlorophyll": 0.3579
+      },
+      {
+        "depth": 10.0,
+        "temperature": 29.6904,
+        "salinity": 35.6887,
+        "chlorophyll": 0.4108
+      },
+      {
+        "depth": 25.0,
+        "temperature": 27.8785,
+        "salinity": 35.6254,
+        "chlorophyll": 0.4413
+      },
+      {
+        "depth": 50.0,
+        "temperature": 25.117,
+        "salinity": 35.5931,
+        "chlorophyll": 0.4324
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.7542,
+        "salinity": 35.5503,
+        "chlorophyll": 0.2582
+      },
+      {
+        "depth": 200.0,
+        "temperature": 14.9155,
+        "salinity": 35.425,
+        "chlorophyll": 0.0304
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.5469,
+        "salinity": 35.0824,
+        "chlorophyll": 0.0265
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.5986,
+        "salinity": 34.7782,
+        "chlorophyll": 0.0272
+      },
+      {
+        "depth": 2000.0,
+        "temperature": 3.2853,
+        "salinity": 34.6079,
+        "chlorophyll": 0.0259
+      }
+    ]
+  },
+  {
+    "id": "ARGO-2902489",
+    "instrument_type": "ARGO",
+    "latitude": 3.5,
+    "longitude": 60.1,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 30.6915,
+        "salinity": 36.0063,
+        "chlorophyll": 0.2431
+      },
+      {
+        "depth": 10.0,
+        "temperature": 29.3247,
+        "salinity": 35.9472,
+        "chlorophyll": 0.2585
+      },
+      {
+        "depth": 25.0,
+        "temperature": 27.4099,
+        "salinity": 35.9254,
+        "chlorophyll": 0.2718
+      },
+      {
+        "depth": 50.0,
+        "temperature": 24.7532,
+        "salinity": 35.9124,
+        "chlorophyll": 0.2832
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.6518,
+        "salinity": 35.8299,
+        "chlorophyll": 0.1874
+      },
+      {
+        "depth": 200.0,
+        "temperature": 15.0859,
+        "salinity": 35.612,
+        "chlorophyll": 0.0307
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.855,
+        "salinity": 35.1418,
+        "chlorophyll": 0.0272
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.8179,
+        "salinity": 34.7762,
+        "chlorophyll": 0.0259
+      },
+      {
+        "depth": 2000.0,
+        "temperature": 3.2674,
+        "salinity": 34.6173,
+        "chlorophyll": 0.0238
+      }
+    ]
+  },
+  {
+    "id": "ARGO-2902490",
+    "instrument_type": "ARGO",
+    "latitude": -2.1,
+    "longitude": 67.5,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 30.1278,
+        "salinity": 35.9132,
+        "chlorophyll": 0.1359
+      },
+      {
+        "depth": 10.0,
+        "temperature": 28.7107,
+        "salinity": 35.9054,
+        "chlorophyll": 0.1406
+      },
+      {
+        "depth": 25.0,
+        "temperature": 26.9518,
+        "salinity": 35.9184,
+        "chlorophyll": 0.156
+      },
+      {
+        "depth": 50.0,
+        "temperature": 24.5768,
+        "salinity": 35.8939,
+        "chlorophyll": 0.1763
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.7367,
+        "salinity": 35.7681,
+        "chlorophyll": 0.1233
+      },
+      {
+        "depth": 200.0,
+        "temperature": 15.2796,
+        "salinity": 35.5213,
+        "chlorophyll": 0.0296
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.9769,
+        "salinity": 35.077,
+        "chlorophyll": 0.0259
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.7154,
+        "salinity": 34.7718,
+        "chlorophyll": 0.0238
+      },
+      {
+        "depth": 2000.0,
+        "temperature": 2.9722,
+        "salinity": 34.6626,
+        "chlorophyll": 0.0228
+      }
+    ]
+  },
+  {
+    "id": "ARGO-2902491",
+    "instrument_type": "ARGO",
+    "latitude": 6.1,
+    "longitude": 82.7,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 29.4885,
+        "salinity": 35.1217,
+        "chlorophyll": 0.1559
+      },
+      {
+        "depth": 10.0,
+        "temperature": 28.2648,
+        "salinity": 35.163,
+        "chlorophyll": 0.1728
+      },
+      {
+        "depth": 25.0,
+        "temperature": 26.7864,
+        "salinity": 35.1851,
+        "chlorophyll": 0.2096
+      },
+      {
+        "depth": 50.0,
+        "temperature": 24.6248,
+        "salinity": 35.1497,
+        "chlorophyll": 0.2416
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.8284,
+        "salinity": 35.0555,
+        "chlorophyll": 0.157
+      },
+      {
+        "depth": 200.0,
+        "temperature": 15.2481,
+        "salinity": 34.9362,
+        "chlorophyll": 0.0289
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.7719,
+        "salinity": 34.783,
+        "chlorophyll": 0.0238
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.3745,
+        "salinity": 34.7086,
+        "chlorophyll": 0.0228
+      },
+      {
+        "depth": 2000.0,
+        "temperature": 2.6686,
+        "salinity": 34.6939,
+        "chlorophyll": 0.0238
+      }
+    ]
+  },
+  {
+    "id": "ARGO-2902492",
+    "instrument_type": "ARGO",
+    "latitude": 12.3,
+    "longitude": 87.2,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 29.3772,
+        "salinity": 34.1333,
+        "chlorophyll": 0.4631
+      },
+      {
+        "depth": 10.0,
+        "temperature": 28.412,
+        "salinity": 34.1808,
+        "chlorophyll": 0.5659
+      },
+      {
+        "depth": 25.0,
+        "temperature": 27.0799,
+        "salinity": 34.1845,
+        "chlorophyll": 0.7077
+      },
+      {
+        "depth": 50.0,
+        "temperature": 24.8657,
+        "salinity": 34.1592,
+        "chlorophyll": 0.776
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.853,
+        "salinity": 34.1619,
+        "chlorophyll": 0.4443
+      },
+      {
+        "depth": 200.0,
+        "temperature": 15.0277,
+        "salinity": 34.2431,
+        "chlorophyll": 0.0329
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.4313,
+        "salinity": 34.4468,
+        "chlorophyll": 0.0228
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.1097,
+        "salinity": 34.614,
+        "chlorophyll": 0.0238
+      },
+      {
+        "depth": 2000.0,
+        "temperature": 2.6359,
+        "salinity": 34.6784,
+        "chlorophyll": 0.0259
+      }
+    ]
+  },
+  {
+    "id": "ARGO-2902493",
+    "instrument_type": "ARGO",
+    "latitude": 8.7,
+    "longitude": 91.4,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 30.097,
+        "salinity": 34.4888,
+        "chlorophyll": 0.2499
+      },
+      {
+        "depth": 10.0,
+        "temperature": 29.2093,
+        "salinity": 34.4815,
+        "chlorophyll": 0.3089
+      },
+      {
+        "depth": 25.0,
+        "temperature": 27.743,
+        "salinity": 34.4378,
+        "chlorophyll": 0.3635
+      },
+      {
+        "depth": 50.0,
+        "temperature": 25.2407,
+        "salinity": 34.4051,
+        "chlorophyll": 0.3682
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.9209,
+        "salinity": 34.4265,
+        "chlorophyll": 0.2079
+      },
+      {
+        "depth": 200.0,
+        "temperature": 14.9122,
+        "salinity": 34.5028,
+        "chlorophyll": 0.027
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.3056,
+        "salinity": 34.6101,
+        "chlorophyll": 0.0238
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.1786,
+        "salinity": 34.6606,
+        "chlorophyll": 0.0259
+      },
+      {
+        "depth": 2000.0,
+        "temperature": 2.9075,
+        "salinity": 34.6418,
+        "chlorophyll": 0.0272
+      }
+    ]
+  },
+  {
+    "id": "ARGO-2902494",
+    "instrument_type": "ARGO",
+    "latitude": -6.2,
+    "longitude": 76.1,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 29.5839,
+        "salinity": 35.6947,
+        "chlorophyll": 0.1373
+      },
+      {
+        "depth": 10.0,
+        "temperature": 28.5803,
+        "salinity": 35.6251,
+        "chlorophyll": 0.1586
+      },
+      {
+        "depth": 25.0,
+        "temperature": 26.9053,
+        "salinity": 35.5536,
+        "chlorophyll": 0.1708
+      },
+      {
+        "depth": 50.0,
+        "temperature": 24.2691,
+        "salinity": 35.5104,
+        "chlorophyll": 0.1658
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.0412,
+        "salinity": 35.4694,
+        "chlorophyll": 0.1025
+      },
+      {
+        "depth": 200.0,
+        "temperature": 14.3703,
+        "salinity": 35.3649,
+        "chlorophyll": 0.0258
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.2504,
+        "salinity": 35.0614,
+        "chlorophyll": 0.0259
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.4192,
+        "salinity": 34.7829,
+        "chlorophyll": 0.0272
+      },
+      {
+        "depth": 2000.0,
+        "temperature": 3.211,
+        "salinity": 34.6148,
+        "chlorophyll": 0.0265
+      }
+    ]
+  },
+  {
+    "id": "GLIDER-IO-01",
+    "instrument_type": "GLIDER",
+    "latitude": 17.2,
+    "longitude": 63.3,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 29.5535,
+        "salinity": 35.8132,
+        "chlorophyll": 0.205
+      },
+      {
+        "depth": 10.0,
+        "temperature": 28.2949,
+        "salinity": 35.7477,
+        "chlorophyll": 0.2211
+      },
+      {
+        "depth": 25.0,
+        "temperature": 26.4552,
+        "salinity": 35.7174,
+        "chlorophyll": 0.2311
+      },
+      {
+        "depth": 50.0,
+        "temperature": 23.8518,
+        "salinity": 35.7089,
+        "chlorophyll": 0.2348
+      },
+      {
+        "depth": 100.0,
+        "temperature": 19.8463,
+        "salinity": 35.6532,
+        "chlorophyll": 0.1539
+      },
+      {
+        "depth": 200.0,
+        "temperature": 14.4658,
+        "salinity": 35.481,
+        "chlorophyll": 0.0293
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.5469,
+        "salinity": 35.0808,
+        "chlorophyll": 0.0272
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.6978,
+        "salinity": 34.7564,
+        "chlorophyll": 0.0265
+      }
+    ]
+  },
+  {
+    "id": "GLIDER-IO-02",
+    "instrument_type": "GLIDER",
+    "latitude": 10.1,
+    "longitude": 84.8,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 29.8358,
+        "salinity": 34.5948,
+        "chlorophyll": 0.3396
+      },
+      {
+        "depth": 10.0,
+        "temperature": 28.4259,
+        "salinity": 34.5986,
+        "chlorophyll": 0.3554
+      },
+      {
+        "depth": 25.0,
+        "temperature": 26.6288,
+        "salinity": 34.6448,
+        "chlorophyll": 0.3902
+      },
+      {
+        "depth": 50.0,
+        "temperature": 24.2121,
+        "salinity": 34.6907,
+        "chlorophyll": 0.4345
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.3843,
+        "salinity": 34.6936,
+        "chlorophyll": 0.2887
+      },
+      {
+        "depth": 200.0,
+        "temperature": 15.0208,
+        "salinity": 34.6501,
+        "chlorophyll": 0.0338
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.886,
+        "salinity": 34.5988,
+        "chlorophyll": 0.0265
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.7443,
+        "salinity": 34.5863,
+        "chlorophyll": 0.0244
+      }
+    ]
+  },
+  {
+    "id": "GLIDER-IO-03",
+    "instrument_type": "GLIDER",
+    "latitude": 3.7,
+    "longitude": 72.1,
+    "timestamp": "2026-09-03T00:00Z",
+    "synthetic": true,
+    "profiles": [
+      {
+        "depth": 0.0,
+        "temperature": 29.7158,
+        "salinity": 35.7102,
+        "chlorophyll": 0.1831
+      },
+      {
+        "depth": 10.0,
+        "temperature": 28.4166,
+        "salinity": 35.7344,
+        "chlorophyll": 0.1985
+      },
+      {
+        "depth": 25.0,
+        "temperature": 26.8568,
+        "salinity": 35.7482,
+        "chlorophyll": 0.2366
+      },
+      {
+        "depth": 50.0,
+        "temperature": 24.6499,
+        "salinity": 35.6998,
+        "chlorophyll": 0.274
+      },
+      {
+        "depth": 100.0,
+        "temperature": 20.859,
+        "salinity": 35.5611,
+        "chlorophyll": 0.1799
+      },
+      {
+        "depth": 200.0,
+        "temperature": 15.3181,
+        "salinity": 35.3459,
+        "chlorophyll": 0.03
+      },
+      {
+        "depth": 500.0,
+        "temperature": 7.8713,
+        "salinity": 34.9967,
+        "chlorophyll": 0.0244
+      },
+      {
+        "depth": 1000.0,
+        "temperature": 4.484,
+        "salinity": 34.7742,
+        "chlorophyll": 0.0228
+      }
+    ]
+  }
+]
