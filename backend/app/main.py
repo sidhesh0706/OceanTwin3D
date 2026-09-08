@@ -50,7 +50,7 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title="OceanTwin", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="OceanTwin", version="2.0.0", lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
@@ -83,6 +83,8 @@ def safe(fn):
         raise HTTPException(404, str(exc)) from exc
 
 
+# ── Core metadata ──────────────────────────────────────────────────────────
+
 @app.get("/api/health")
 def health():
     return {
@@ -112,6 +114,8 @@ def depths():
     return get_service().adapter.ds.depth.values.tolist()
 
 
+# ── Ocean field endpoints ──────────────────────────────────────────────────
+
 @app.get("/api/ocean/slice")
 def ocean_slice(
     variable: str = "temperature",
@@ -124,53 +128,6 @@ def ocean_slice(
 @app.get("/api/ocean/volume")
 def volume(variable: str = "temperature", time: int = Query(0, ge=0)):
     return safe(lambda: get_service().field(variable, time))
-
-
-@app.get("/api/currents")
-def currents(depth: float = Query(0, ge=0), time: int = Query(0, ge=0)):
-    def extract():
-        adapter = get_service().adapter
-        adapter.validate("current_speed", time)
-        arr = adapter.downsample(
-            adapter.at_depth(
-                adapter.ds[["u_current", "v_current"]].isel(time=time), depth
-            ),
-            cap=37,
-        )
-        return {
-            "depth": depth,
-            "time": time,
-            "latitudes": arr.latitude.values.tolist(),
-            "longitudes": arr.longitude.values.tolist(),
-            "u": clean(arr.u_current.values),
-            "v": clean(arr.v_current.values),
-            "units": "m/s",
-        }
-
-    return safe(extract)
-
-
-@app.get("/api/observations")
-def observations():
-    return [
-        {k: v for k, v in o.items() if k != "profiles"}
-        | {"max_depth": max((p["depth"] for p in o["profiles"]), default=0)}
-        for o in get_service().observations
-    ]
-
-
-@app.get("/api/observations/{instrument_id}")
-def observation(instrument_id: str):
-    return safe(lambda: get_service().observation(instrument_id))
-
-
-@app.get("/api/compare/{instrument_id}")
-def compare(
-    instrument_id: str,
-    variable: str = "temperature",
-    time: int | None = Query(None, ge=0),
-):
-    return safe(lambda: get_service().compare(instrument_id, variable, time))
 
 
 @app.get("/api/ocean/inspect")
@@ -202,6 +159,102 @@ def inspect(
     return safe(extract)
 
 
+@app.get("/api/ocean/profile")
+def ocean_profile(
+    latitude: float,
+    longitude: float,
+    time: int = Query(0, ge=0),
+):
+    """Full depth profile for all variables at a geographic point."""
+    return safe(lambda: get_service().profile(latitude, longitude, time))
+
+
+@app.get("/api/ocean/transect")
+def ocean_transect(
+    lat1: float,
+    lon1: float,
+    lat2: float,
+    lon2: float,
+    depth: float = Query(0, ge=0),
+    time: int = Query(0, ge=0),
+    variable: str = "temperature",
+    points: int = Query(50, ge=2, le=200),
+):
+    """Sample a variable along a great-circle transect at fixed depth."""
+    return safe(
+        lambda: get_service().transect(lat1, lon1, lat2, lon2, depth, time, variable, points)
+    )
+
+
+@app.get("/api/ocean/stats")
+def ocean_stats(
+    lat_min: float,
+    lat_max: float,
+    lon_min: float,
+    lon_max: float,
+    depth: float = Query(0, ge=0),
+    time: int = Query(0, ge=0),
+    variable: str = "temperature",
+):
+    """Statistical summary for a rectangular ocean region."""
+    return safe(
+        lambda: get_service().region_stats(lat_min, lat_max, lon_min, lon_max, depth, time, variable)
+    )
+
+
+# ── Currents ───────────────────────────────────────────────────────────────
+
+@app.get("/api/currents")
+def currents(depth: float = Query(0, ge=0), time: int = Query(0, ge=0)):
+    def extract():
+        adapter = get_service().adapter
+        adapter.validate("current_speed", time)
+        arr = adapter.downsample(
+            adapter.at_depth(
+                adapter.ds[["u_current", "v_current"]].isel(time=time), depth
+            ),
+            cap=37,
+        )
+        return {
+            "depth": depth,
+            "time": time,
+            "latitudes": arr.latitude.values.tolist(),
+            "longitudes": arr.longitude.values.tolist(),
+            "u": clean(arr.u_current.values),
+            "v": clean(arr.v_current.values),
+            "units": "m/s",
+        }
+
+    return safe(extract)
+
+
+# ── Observations ───────────────────────────────────────────────────────────
+
+@app.get("/api/observations")
+def observations():
+    return [
+        {k: v for k, v in o.items() if k != "profiles"}
+        | {"max_depth": max((p["depth"] for p in o["profiles"]), default=0)}
+        for o in get_service().observations
+    ]
+
+
+@app.get("/api/observations/{instrument_id}")
+def observation(instrument_id: str):
+    return safe(lambda: get_service().observation(instrument_id))
+
+
+@app.get("/api/compare/{instrument_id}")
+def compare(
+    instrument_id: str,
+    variable: str = "temperature",
+    time: int | None = Query(None, ge=0),
+):
+    return safe(lambda: get_service().compare(instrument_id, variable, time))
+
+
+# ── Dataset management ────────────────────────────────────────────────────
+
 @app.post("/api/datasets/upload")
 def upload(file: Annotated[UploadFile, File()]):
     global service, load_error
@@ -224,7 +277,6 @@ def upload(file: Annotated[UploadFile, File()]):
                     )
                 dest.write(chunk)
         candidate = OceanService(path, None)
-        # Candidate is fully loaded and validated before this atomic swap.
         with lock:
             service = candidate
             load_error = None

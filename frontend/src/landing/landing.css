@@ -1,0 +1,742 @@
+/* OceanTwin cinematic landing. Restrained scientific instrument language:
+   deep navy, cool white, cyan reserved for active data. The 3D world is
+   the hero; UI stays secondary and never covers the explorer (which owns
+   its own styles in styles.css). */
+
+/* Cinematic title card: pure black, sparse white/blue starfield (pure
+   CSS, no DOM nodes), one centered brand lockup revealed in sequence.
+   Timing is independent of loading — the landing initializes underneath
+   while this plays, then it crossfades out. Pointer-transparent so Skip
+   stays clickable throughout. */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: transparent;
+  color: #fff;
+  overflow: hidden;
+  pointer-events: none;
+  /* Darkness lifting: the whole overlay — backdrop, stars, type —
+     dissolves together over the live landing beneath. No objects,
+     no mask edge, no flash. */
+  animation: splashEnd 0.9s ease 3.4s both;
+}
+/* Opaque backdrop isolated on its own layer so nothing — no mask, no
+   blend, no clip — can ever cut holes into the wordmark. Type always
+   paints fully opaque above it, then everything dissolves together. */
+.splash-bg {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+/* Forward-motion layer: a second sparse field, slightly bluer, breathing
+   outward once — the feeling of moving through space, not a warp tunnel. */
+.splash-drift {
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(1.5px 1.5px at 30% 30%, #e8f1f7cc 50%, transparent 51%),
+    radial-gradient(1px 1px at 42% 62%, #3b82f699 50%, transparent 51%),
+    radial-gradient(1px 1px at 58% 28%, #ffffff99 50%, transparent 51%),
+    radial-gradient(2px 2px at 64% 58%, #22d3eebb 0%, #22d3ee33 45%, transparent 70%),
+    radial-gradient(1px 1px at 36% 74%, #2563eb99 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 52% 44%, #ffffffaa 50%, transparent 51%),
+    radial-gradient(1px 1px at 70% 76%, #38bdf888 50%, transparent 51%),
+    radial-gradient(1px 1px at 24% 52%, #cbd5e188 50%, transparent 51%);
+  animation: splashDrift 1.3s ease 3s both;
+}
+
+.splash-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: splashTwinkle 7s ease-in-out infinite alternate;
+  background:
+    radial-gradient(1px 1px at 6% 18%, #ffffffcc 50%, transparent 51%),
+    radial-gradient(1px 1px at 13% 72%, #3b82f6b3 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 19% 34%, #e8f1f7b3 50%, transparent 51%),
+    radial-gradient(1px 1px at 24% 88%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 29% 8%, #2563eb99 50%, transparent 51%),
+    radial-gradient(1px 1px at 33% 55%, #cbd5e199 50%, transparent 51%),
+    radial-gradient(2px 2px at 38% 24%, #22d3eecc 0%, #22d3ee33 45%, transparent 70%),
+    radial-gradient(1px 1px at 42% 78%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 47% 12%, #e8f1f799 50%, transparent 51%),
+    radial-gradient(1px 1px at 52% 64%, #3b82f680 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 57% 40%, #ffffffb3 50%, transparent 51%),
+    radial-gradient(1px 1px at 61% 90%, #cbd5e180 50%, transparent 51%),
+    radial-gradient(1px 1px at 66% 20%, #2563eb99 50%, transparent 51%),
+    radial-gradient(2px 2px at 70% 52%, #38bdf8bb 0%, #38bdf833 45%, transparent 70%),
+    radial-gradient(1px 1px at 74% 6%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 36%, #3b82f699 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 82% 70%, #e8f1f7b3 50%, transparent 51%),
+    radial-gradient(1px 1px at 86% 14%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 89% 84%, #2563eb99 50%, transparent 51%),
+    radial-gradient(1px 1px at 93% 46%, #ffffff99 50%, transparent 51%),
+    radial-gradient(1px 1px at 97% 26%, #cbd5e180 50%, transparent 51%),
+    radial-gradient(1px 1px at 3% 48%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 10% 92%, #ffffff66 50%, transparent 51%),
+    radial-gradient(1px 1px at 45% 94%, #3b82f680 50%, transparent 51%),
+    radial-gradient(1px 1px at 90% 60%, #ffffff66 50%, transparent 51%);
+}
+/* Almost-invisible atmospheric haze behind the lockup. */
+.splash-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(42% 34% at 50% 46%, #8fb4cc14 0%, transparent 70%);
+}
+/* Faint horizontal light passing through the center as the brand resolves. */
+.splash-sweep {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: min(46vw, 560px);
+  height: 1px;
+  transform: translate(-50%, -50%) scaleX(0);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #bfe6ff99 30%,
+    #ffffffee 50%,
+    #bfe6ff99 70%,
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+  animation: splashSweep 1.1s ease 0.45s both;
+}
+/* Controlled wordmark: large but never edge-to-edge (~50vw desktop). */
+.splash-title {
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  font-size: clamp(40px, 7.2vw, 116px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  animation: splashDissolve 0.7s ease 3.55s both;
+}
+.splash-ocean,
+.splash-twin {
+  display: inline-block;
+  opacity: 0;
+}
+.splash-ocean {
+  color: #f2f5f7;
+  animation: splashReveal 1s cubic-bezier(0.22, 0.61, 0.36, 1) 0.4s both;
+}
+.splash-twin {
+  color: #18c8e8;
+  text-shadow: 0 0 26px #18c8e838;
+  animation: splashReveal 1s cubic-bezier(0.22, 0.61, 0.36, 1) 0.6s both;
+}
+/* Center-outward resolve: clip opens from the middle while the glyphs
+   sharpen into place. No flying letters, no typing. */
+@keyframes splashReveal {
+  from {
+    opacity: 0;
+    clip-path: inset(0 42% 0 42%);
+    filter: blur(7px);
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+@keyframes splashSweep {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scaleX(0);
+  }
+  30% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scaleX(1);
+  }
+}
+.splash-sub {
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  font-size: clamp(12px, 1.15vw, 17px);
+  letter-spacing: 0.24em;
+  padding-left: 0.24em;
+  color: #c3d2dd;
+  opacity: 0;
+  animation:
+    splashSubRise 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) 2s both,
+    splashSubOut 0.4s ease 3.4s both;
+}
+@keyframes splashSubRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 0.9;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+@keyframes splashTwinkle {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+/* Wordmark contracts toward the center: scale + tracking + blur + fade —
+   becoming a point of origin, not a scale-down. */
+/* Gentle dissolve: slight contraction, faint blur, no flight. */
+@keyframes splashDissolve {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+    filter: blur(4px);
+  }
+}
+@keyframes splashSubOut {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(6px);
+  }
+}
+@keyframes splashDrift {
+  from {
+    opacity: 0;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+@keyframes splashEnd {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-ocean,
+  .splash-twin,
+  .splash-sub {
+    animation-name: splashSubRise;
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+  .splash-title {
+    animation: none;
+  }
+  .splash-bg::before {
+    animation: none;
+  }
+  .splash-sweep,
+  .splash-drift {
+    display: none;
+  }
+  .splash {
+    animation: splashEnd 0.3s ease 1.4s both;
+  }
+}
+@media (max-width: 900px) {
+  .splash-title {
+    font-size: 9vw;
+  }
+  .splash-sweep {
+    width: 62vw;
+  }
+}
+@media (max-width: 480px) {
+  .splash-title {
+    font-size: 11.5vw;
+    letter-spacing: 0.1em;
+  }
+  .splash-sub {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    padding-left: 0.2em;
+  }
+  .splash-sweep {
+    width: 80vw;
+  }
+}
+
+.landing {
+  background: #06101a;
+  color: #eef3f7;
+  min-height: 100dvh;
+}
+
+/* Preload veil: the explorer mounts hidden at app start so its chunk and
+   data are live before the CTA is ever pressed. Zero-size canvas keeps
+   its frame cost negligible until reveal. */
+.experience-explorer.is-preload {
+  display: none;
+}
+
+/* Staged handoff: the landing pins over the already-live explorer and
+   fades, so the cinematic instrument opens into the workstation. Unmount
+   (and Cesium teardown) follows when the fade completes. */
+.experience-landing.is-leaving {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 10;
+  pointer-events: none;
+  animation: landingOut 0.28s ease 0.02s both;
+}
+@keyframes landingOut {
+  to {
+    opacity: 0;
+  }
+}
+/* Single cinematic canvas: the stage pins while a deliberately short
+   scroll track (4 viewport heights desktop, 3 mobile) drives progress.
+   Scroll distance is an input — never one section per scene. */
+.cinematic-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+.cinematic-scroll-space {
+  height: 400vh;
+}
+.landing-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #06101a;
+}
+.cesium-container {
+  position: absolute;
+  inset: 0;
+  /* Second half of the cinematic lock: no pointer, wheel, or touch
+     gesture ever reaches the engine, so every one of them scrolls the
+     page narrative instead. Attribution credits stay visible. */
+  pointer-events: none;
+}
+.cesium-container canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.landing-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, #06101a33 0%, #0a2c4acc 60%, #06101ae6 100%);
+  transition: opacity 0.6s ease;
+}
+.landing-boot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.landing-boot span {
+  font-size: 26px;
+  letter-spacing: 8px;
+}
+.landing-boot small {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #8fa2b5;
+}
+
+.landing-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  pointer-events: none;
+}
+.landing-brand {
+  font-size: 15px;
+  letter-spacing: 5px;
+}
+.landing-brand span {
+  color: #18c8e8;
+}
+.landing-skip,
+.landing-enter {
+  pointer-events: auto;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #eef3f7;
+  border: 1px solid #8fa2b555;
+  background: #0b1722cc;
+  padding: 10px 16px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.landing-skip:hover,
+.landing-enter:hover {
+  border-color: #18c8e8;
+  color: #fff;
+}
+.landing-enter {
+  border-color: #18c8e8aa;
+  font-size: 13px;
+  padding: 14px 26px;
+}
+
+.landing-hud {
+  position: fixed;
+  z-index: 4;
+  left: 48px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 380px;
+  pointer-events: none;
+}
+.landing-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #8fa2b5;
+}
+.landing-hud h1 {
+  margin: 14px 0 12px;
+  font-size: 44px;
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+.landing-hud > p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #8fa2b5;
+  max-width: 340px;
+}
+.landing-fact {
+  margin-top: 22px;
+  border-top: 1px solid #8fa2b533;
+  padding-top: 16px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #eef3f7;
+}
+.landing-fact em {
+  display: block;
+  margin-top: 12px;
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #f2b84b;
+}
+.landing-scale {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  color: #8fa2b5;
+}
+.landing-scale b {
+  flex: 1;
+  height: 4px;
+  background: linear-gradient(90deg, #0b3d5c, #18c8e8, #eef3f7);
+  border-radius: 1px;
+}
+.landing-symbols span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #8fa2b5;
+}
+.landing-symbols strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #43d18a;
+}
+.sym-argo,
+.sym-bgc {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #43d18a;
+}
+.sym-bgc {
+  border-radius: 0;
+  transform: rotate(45deg);
+  background: #4ea4ff;
+}
+.sym-glider {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 9px solid #f2b84b;
+}
+.landing-depth span {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #8fa2b5;
+}
+.landing-depth strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 52px;
+  font-weight: 300;
+  letter-spacing: -1px;
+  color: #18c8e8;
+}
+.landing-depth small {
+  font-size: 16px;
+  color: #8fa2b5;
+}
+.landing-vars span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid #8fa2b522;
+}
+.landing-vars small {
+  color: #8fa2b5;
+}
+.landing-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+.landing-metrics span {
+  display: block;
+  font-size: 9px;
+  color: #8fa2b5;
+  letter-spacing: 2px;
+}
+.landing-metrics strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 19px;
+  font-weight: 500;
+  color: #4ea4ff;
+}
+
+.landing-telemetry {
+  position: fixed;
+  z-index: 4;
+  right: 88px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  pointer-events: none;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+.landing-telemetry span {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #8fa2b5;
+}
+.landing-telemetry strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.landing-progress {
+  position: fixed;
+  z-index: 5;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+.landing-progress-track {
+  width: 1px;
+  background: #8fa2b533;
+  position: relative;
+}
+.landing-progress-track i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  background: #18c8e8;
+  display: block;
+}
+.landing-progress-dots {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.landing-progress-dots button {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid #8fa2b5;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.landing-progress-dots button.active {
+  background: #18c8e8;
+  border-color: #18c8e8;
+}
+
+.landing-hint {
+  position: fixed;
+  z-index: 4;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #8fa2b5;
+  pointer-events: none;
+}
+.landing-hint span {
+  display: block;
+  text-align: center;
+  margin-top: 6px;
+  color: #18c8e8;
+}
+
+/* Final-scene mission command: compact, dark, thin-bordered, one cyan
+   arrow. Fades in with the final frame; the scene stays visible behind. */
+.landing-cta-final {
+  position: fixed;
+  z-index: 5;
+  bottom: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  color: #eef3f7;
+  background: #0b1722dd;
+  border: 1px solid #8fa2b555;
+  border-radius: 2px;
+  box-shadow: 0 0 18px #18c8e822;
+  padding: 14px 24px;
+  cursor: pointer;
+  animation: ctaIn 0.45s ease both;
+}
+.landing-cta-final span {
+  color: #18c8e8;
+}
+.landing-cta-final:hover {
+  border-color: #18c8e8;
+  color: #fff;
+}
+@keyframes ctaIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+.landing-fallback {
+  position: fixed;
+  z-index: 6;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #06101af2;
+  text-align: center;
+  padding: 24px;
+}
+.landing-fallback span {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #f2b84b;
+}
+.landing-fallback p {
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #8fa2b5;
+}
+
+@media (max-width: 900px) {
+  .landing-hud {
+    left: 20px;
+    right: 20px;
+    top: auto;
+    bottom: 96px;
+    transform: none;
+    max-width: none;
+  }
+  .landing-hud h1 {
+    font-size: 30px;
+  }
+  .landing-hud > p {
+    font-size: 12px;
+  }
+  .landing-telemetry {
+    display: none;
+  }
+  .landing-hint {
+    display: none;
+  }
+  .cinematic-scroll-space {
+    height: 300vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-tint {
+    transition: none;
+  }
+  .experience-landing.is-leaving {
+    animation: none;
+    opacity: 0;
+  }
+}

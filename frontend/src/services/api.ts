@@ -5,6 +5,9 @@ import type {
   Field,
   Inspection,
   Observation,
+  ProfileResult,
+  RegionStats,
+  TransectResult,
   Variable,
 } from '../types';
 
@@ -46,10 +49,48 @@ export const api = {
       `/api/ocean/inspect?latitude=${lat}&longitude=${lon}&depth=${depth}&time=${time}`,
       { signal },
     ),
+  profile: (lat: number, lon: number, time: number, signal: AbortSignal) =>
+    request<ProfileResult>(
+      `/api/ocean/profile?latitude=${lat}&longitude=${lon}&time=${time}`,
+      { signal },
+    ),
+  transect: (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+    depth: number,
+    time: number,
+    variable: Variable,
+    signal: AbortSignal,
+  ) =>
+    request<TransectResult>(
+      `/api/ocean/transect?lat1=${lat1}&lon1=${lon1}&lat2=${lat2}&lon2=${lon2}&depth=${depth}&time=${time}&variable=${variable}&points=60`,
+      { signal },
+    ),
+  regionStats: (
+    lat_min: number,
+    lat_max: number,
+    lon_min: number,
+    lon_max: number,
+    depth: number,
+    time: number,
+    variable: Variable,
+    signal: AbortSignal,
+  ) =>
+    request<RegionStats>(
+      `/api/ocean/stats?lat_min=${lat_min}&lat_max=${lat_max}&lon_min=${lon_min}&lon_max=${lon_max}&depth=${depth}&time=${time}&variable=${variable}`,
+      { signal },
+    ),
 };
 export function validateDataset(d: Dataset): Dataset {
   if (!d || !d.variables?.length || !d.times?.length || !d.depths?.length || !d.bounds || !d.grid)
     throw new Error('The dataset metadata is incomplete.');
+  // Backfill global flag when absent (older backend versions).
+  if (typeof d.global === 'undefined') {
+    const span = d.bounds.longitude[1] - d.bounds.longitude[0];
+    (d as unknown as { global: boolean }).global = span > 180;
+  }
   return d;
 }
 export function validateField(f: Field): Field {

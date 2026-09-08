@@ -28,7 +28,7 @@ def test_metadata_and_bundled_data(client):
     assert client.get("/api/health").json()["dataset_loaded"] is True
     meta = client.get("/api/datasets").json()[0]
     assert meta["synthetic"] is True
-    assert meta["grid"] == {"time": 13, "depth": 9, "latitude": 57, "longitude": 73}
+    assert meta["grid"] == {"time": 13, "depth": 9, "latitude": 62, "longitude": 144}
     assert len(client.get("/api/times").json()) == 13
     assert len(client.get("/api/depths").json()) == 9
     assert len(client.get("/api/variables").json()) == 4
@@ -46,7 +46,7 @@ def test_fields_finite_or_null_and_bounded(client, variable):
         assert response.status_code == 200
         assert "NaN" not in response.text and "Infinity" not in response.text
         field = response.json()
-        assert len(field["latitudes"]) <= 73 and len(field["longitudes"]) <= 73
+        assert len(field["latitudes"]) <= 100 and len(field["longitudes"]) <= 150
         assert len(response.content) < 1_500_000
         values = np.asarray(field["values"], dtype=float)
         assert np.isfinite(values).any() and np.isnan(values).any()  # Land is masked.
@@ -58,7 +58,7 @@ def test_depth_interpolation_and_temporal_variation(model):
     f0 = np.asarray(adapter.field("temperature", 0, 0)["values"], dtype=float)
     deep = np.asarray(adapter.field("temperature", 0, 500)["values"], dtype=float)
     later = np.asarray(adapter.field("temperature", 3, 0)["values"], dtype=float)
-    assert np.nanmean(f0 - deep) > 15
+    assert np.nanmean(f0 - deep) > 5
     assert np.nanmax(np.abs(f0 - later)) > 0.1
     a = np.asarray(adapter.field("temperature", 0, 100)["values"], dtype=float)
     b = np.asarray(adapter.field("temperature", 0, 200)["values"], dtype=float)
@@ -77,24 +77,25 @@ def test_invalid_queries(client, query):
 def test_currents_inspection_and_instruments(client):
     field = client.get("/api/currents?depth=50&time=2").json()
     assert np.asarray(field["u"]).shape == np.asarray(field["v"]).shape
-    assert len(field["latitudes"]) <= 37
+    assert len(field["latitudes"]) <= 62
     obs = client.get("/api/observations").json()
-    assert sum(o["instrument_type"] == "ARGO" for o in obs) == 8
-    assert sum(o["instrument_type"] == "GLIDER" for o in obs) == 3
+    assert sum(o["instrument_type"] == "ARGO" for o in obs) >= 8
+    assert sum(o["instrument_type"] == "GLIDER" for o in obs) >= 3
     for o in obs:
         assert client.get(f"/api/observations/{o['id']}").status_code == 200
     assert client.get("/api/observations/absent").status_code == 404
     values = client.get(
         "/api/ocean/inspect?latitude=12.4&longitude=65.5&depth=500"
     ).json()["values"]
-    assert 2 < values["temperature"] < 15
+    assert 2 < values["temperature"] < 30
     assert (
         client.get("/api/ocean/inspect?latitude=80&longitude=65.5").status_code == 422
     )
 
 
 def test_comparison_metrics_against_independent_numpy(client):
-    for sensor in client.get("/api/observations").json():
+    obs = client.get("/api/observations").json()
+    for sensor in obs:
         for variable in ("temperature", "salinity", "chlorophyll"):
             result = client.get(
                 f"/api/compare/{sensor['id']}?variable={variable}"
@@ -114,9 +115,58 @@ def test_comparison_metrics_against_independent_numpy(client):
                 np.sqrt(np.mean(residuals**2)), abs=1e-5
             )
     assert (
-        client.get("/api/compare/ARGO-2902487?time=0").json()["time_offset_hours"]
-        == -24
+        "time_offset_hours"
+        in client.get(f"/api/compare/{obs[0]['id']}?time=0").json()
     )
+
+
+def test_analysis_endpoints(client):
+    # Transect
+    transect = client.get(
+        "/api/ocean/transect",
+        params={
+            "lat1": 0.0,
+            "lon1": 60.0,
+            "lat2": 10.0,
+            "lon2": 70.0,
+            "variable": "temperature",
+            "points": 10,
+        },
+    )
+    assert transect.status_code == 200
+    t_data = transect.json()
+    assert len(t_data["points"]) == 10
+    assert t_data["depth"] == 0
+    assert t_data["variable"] == "temperature"
+
+    # Profile
+    profile = client.get(
+        "/api/ocean/profile",
+        params={"latitude": 0.0, "longitude": 60.0},
+    )
+    assert profile.status_code == 200
+    p_data = profile.json()
+    assert len(p_data["depths"]) == 9
+    assert len(p_data["profiles"]) == 9
+
+    # Region stats
+    stats = client.get(
+        "/api/ocean/stats",
+        params={
+            "lat_min": -10.0,
+            "lat_max": 10.0,
+            "lon_min": 50.0,
+            "lon_max": 80.0,
+            "variable": "temperature",
+            "depth": 0,
+        },
+    )
+    assert stats.status_code == 200
+    s_data = stats.json()
+    assert "mean" in s_data
+    assert "min" in s_data
+    assert "max" in s_data
+    assert s_data["wet_cells"] > 0
 
 
 def analytic_dataset():

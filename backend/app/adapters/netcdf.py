@@ -1,6 +1,7 @@
 """Rectilinear CF-style NetCDF adapter. No frontend assumptions about grid size.
 
-Unsupported grids/units fail explicitly, before replacing the active dataset.
+Supports regional AND global (dateline-crossing) datasets. Unsupported
+grids/units fail explicitly before replacing the active dataset.
 """
 
 import math
@@ -79,6 +80,7 @@ class NetCDFDatasetAdapter:
                 ds = ds.assign_coords(depth=-ds.depth)
             if float(ds.depth.min()) < 0:
                 raise ValueError("Depth must be positive downward.")
+            # Normalise longitude to -180…180 (handles both 0–360 and -180–180 input).
             ds = ds.assign_coords(longitude=((ds.longitude + 180) % 360) - 180)
             for coord in COORDS:
                 if len(np.unique(ds[coord])) != ds.sizes[coord]:
@@ -88,11 +90,8 @@ class NetCDFDatasetAdapter:
                 ds = ds.sortby(coord)
             if float(ds.latitude.min()) < -90 or float(ds.latitude.max()) > 90:
                 raise ValueError("Latitude is outside -90 to 90 degrees.")
-            # A regular regional domain is required by the flat scene projection.
-            if float(ds.longitude.max() - ds.longitude.min()) > 180:
-                raise ValueError(
-                    "Please subset global/dateline-crossing data to a regional domain under 180° wide."
-                )
+            # NOTE: No domain-width restriction. Global and dateline-crossing
+            # datasets are fully supported once longitude is normalised above.
             variables = {}
             for canonical, candidates in ALIASES.items():
                 name = next((n for n in candidates if n in ds.data_vars), None)
@@ -174,6 +173,12 @@ class NetCDFDatasetAdapter:
                 if not finite.size:
                     raise ValueError(f"{v} contains no finite data.")
                 self.ranges[v] = [float(finite.min()), float(finite.max())]
+            # Pre-compute the 2D wet mask (any depth, any time where finite data exists).
+            # True = ocean cell; False = land/dry. Shape: (lat, lon).
+            first_var = self.ds[self.variables[0]]
+            self._wet_mask = np.any(
+                np.isfinite(first_var.values), axis=(0, 1)
+            )  # (lat, lon)
         finally:
             raw.close()
 
@@ -211,8 +216,24 @@ class NetCDFDatasetAdapter:
         arr = self.ds[variable].isel(time=time)
         if depth is not None:
             arr = self.at_depth(arr, depth)
-        arr = self.downsample(arr, cap=57 if depth is None else 73)
+        # For global datasets, use a higher lat/lon cap so the surface field
+        # has enough density to reveal ocean basin structure without the
+        # rectangular appearance of the old low-res grid.
+        lon_span = float(self.ds.longitude.max() - self.ds.longitude.min())
+        is_global = lon_span > 180
+        cap = (80 if is_global else 57) if depth is None else (100 if is_global else 73)
+        arr = self.downsample(arr, cap=cap)
         finite = arr.values[np.isfinite(arr.values)]
+
+        # Build per-cell wet-mask matching the downsampled grid.
+        # 1 = ocean, 0 = land — sent to the frontend for proper geographic masking.
+        if depth is not None:
+            # 2-D slice: shape (lat, lon)
+            mask_2d = np.isfinite(arr.values).astype("int8").tolist()
+        else:
+            # Volume: collapse across depths — a cell is "wet" if any depth is finite
+            mask_2d = np.any(np.isfinite(arr.values), axis=0).astype("int8").tolist()
+
         return {
             "variable": variable,
             "units": UNITS[variable],
@@ -226,6 +247,7 @@ class NetCDFDatasetAdapter:
             "range": [float(finite.min()), float(finite.max())]
             if finite.size
             else [None, None],
+            "wet_mask": mask_2d,  # (lat, lon) boolean grid — True = ocean
         }
 
     def times(self):
@@ -234,10 +256,12 @@ class NetCDFDatasetAdapter:
         ]
 
     def metadata(self):
+        lon_span = float(self.ds.longitude.max() - self.ds.longitude.min())
         return {
             "id": str(self.ds.attrs.get("dataset_id", self.path.stem)),
             "name": str(self.ds.attrs.get("title", self.path.stem)),
             "synthetic": str(self.ds.attrs.get("synthetic", "false")).lower() == "true",
+            "global": lon_span > 180,
             "grid": dict(self.ds.sizes),
             "bounds": {
                 c: [float(self.ds[c].min()), float(self.ds[c].max())]

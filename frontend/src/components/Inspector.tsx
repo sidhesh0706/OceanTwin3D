@@ -60,34 +60,38 @@ export function Inspector({
       });
     return () => controller.abort();
   }, [selected, profileVariable, field.time]);
-  const argo = observations.filter((o) => o.instrument_type === 'ARGO').length,
-    gliders = observations.filter((o) => o.instrument_type === 'GLIDER').length;
+  const typeCounts = new Map<string, number>();
+  for (const o of observations)
+    typeCounts.set(o.instrument_type, (typeCounts.get(o.instrument_type) ?? 0) + 1);
   return (
-    <aside className="panel inspector">
+    <aside className="inspector-float">
       <div className="panel-heading">
         <span>
-          {selected ? 'OBSERVATION INSPECTOR' : inspection ? 'POINT INSPECTION' : 'MISSION CONTEXT'}
+          {selected ? 'OBSERVATION INSPECTOR' : 'POINT INSPECTION'}
         </span>
-        {selected || inspection ? (
-          <button
-            className="icon-button"
-            aria-label="Close inspector selection"
-            onClick={() => {
-              onSelect(null);
-              onClearInspection();
-            }}
-          >
-            <X size={15} />
-          </button>
-        ) : (
-          <span className="tiny-dot" />
-        )}
+        <button
+          className="icon-button"
+          aria-label="Close inspector"
+          onClick={() => {
+            onSelect(null);
+            onClearInspection();
+          }}
+        >
+          <X size={15} />
+        </button>
       </div>
+
       {selected ? (
         <div className="inspector-body" key={selected.id}>
           <div className="instrument-heading">
             <span className="sensor-icon">
-              {selected.instrument_type === 'ARGO' ? <Radio size={21} /> : <Navigation size={21} />}
+              {selected.instrument_type === 'ARGO' ? (
+                <Radio size={21} />
+              ) : selected.instrument_type === 'GLIDER' ? (
+                <Navigation size={21} />
+              ) : (
+                <Layers size={21} />
+              )}
             </span>
             <div>
               <span className="eyebrow">{selected.instrument_type} PROFILE</span>
@@ -191,7 +195,7 @@ export function Inspector({
                       <Line
                         name="Model"
                         dataKey="model"
-                        stroke="#79aefe"
+                        stroke="#4ea4ff"
                         strokeWidth={2}
                         strokeDasharray="5 3"
                         dot={false}
@@ -315,6 +319,16 @@ export function Inspector({
               </dd>
             </div>
             <div>
+              <dt>Domain</dt>
+              <dd className="hud-coordinates">
+                {coordinate(dataset.bounds.latitude[0], true)} –{' '}
+                {coordinate(dataset.bounds.latitude[1], true)}
+                <br />
+                {coordinate(dataset.bounds.longitude[0])} –{' '}
+                {coordinate(dataset.bounds.longitude[1])}
+              </dd>
+            </div>
+            <div>
               <dt>Selected layer range</dt>
               <dd>
                 {field.range[0]?.toFixed(2) ?? '—'} — {field.range[1]?.toFixed(2) ?? '—'}{' '}
@@ -328,14 +342,12 @@ export function Inspector({
             <span>{observations.length.toString().padStart(2, '0')}</span>
           </div>
           <div className="network-summary">
-            <span>
-              <i className="argo-dot" />
-              {argo} Argo floats
-            </span>
-            <span>
-              <i className="glider-dot" />
-              {gliders} gliders
-            </span>
+            {[...typeCounts].map(([type, n]) => (
+              <span key={type}>
+                <i className={type === 'GLIDER' ? 'glider-dot' : 'argo-dot'} />
+                {n} {type.toLowerCase()}s
+              </span>
+            ))}
           </div>
           <div className="observation-list">
             {observations.map((o) => (

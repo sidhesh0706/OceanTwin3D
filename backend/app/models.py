@@ -12,7 +12,7 @@ class ProfileSample(BaseModel):
 
 class ObservationSource(BaseModel):
     id: str
-    instrument_type: Literal["ARGO", "GLIDER", "CTD", "MOORING", "ADCP"]
+    instrument_type: Literal["ARGO", "GLIDER", "CTD", "BGC", "MOORING", "ADCP"]
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     timestamp: str

@@ -95,6 +95,7 @@ export function Controls(p: Props) {
       <div className="panel-heading">
         <span>
           <SlidersHorizontal size={13} /> EXPLORER
+          <small className="panel-sub">ANALYZE · VISUALIZE · COMPARE</small>
         </span>
         <button className="icon-button" aria-label="Collapse controls" onClick={p.onCollapse}>
           <ChevronLeft size={16} />
@@ -126,7 +127,7 @@ export function Controls(p: Props) {
                 { id: 'volume', label: '3D volume', Icon: Box },
                 { id: 'currents', label: 'Current field', Icon: Waves },
               ] as const
-            ).map(({ id, label, Icon }) => (
+            ).map(({ id, label, Icon }, i) => (
               <button
                 key={id}
                 disabled={id === 'currents' && !p.dataset.has_currents}
@@ -135,6 +136,7 @@ export function Controls(p: Props) {
               >
                 <Icon size={15} />
                 {label}
+                <small>{String(i + 1).padStart(2, '0')}</small>
                 <span className="radio-dot" />
               </button>
             ))}

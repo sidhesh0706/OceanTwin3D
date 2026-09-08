@@ -34,6 +34,42 @@ export function sample(field: Currents, lon: number, lat: number): [number, numb
   return u === null || v === null ? null : [u, v];
 }
 
+// Allocation-free variant for the per-frame loop: bilinear u/v written
+// into `out`, `false` when the cell is dry or outside the domain.
+const scratch = { u: 0, v: 0 };
+function sampleInto(field: Currents, lon: number, lat: number, out: typeof scratch): boolean {
+  const xs = field.longitudes,
+    ys = field.latitudes;
+  if (lon < xs[0] || lon > xs[xs.length - 1] || lat < ys[0] || lat > ys[ys.length - 1])
+    return false;
+  const i = interval(xs, lon),
+    j = interval(ys, lat),
+    tx = (lon - xs[i]) / (xs[i + 1] - xs[i]),
+    ty = (lat - ys[j]) / (ys[j + 1] - ys[j]);
+  const p = field.u[j][i],
+    q = field.u[j][i + 1],
+    r = field.u[j + 1][i],
+    s = field.u[j + 1][i + 1],
+    t = field.v[j][i],
+    w = field.v[j][i + 1],
+    x = field.v[j + 1][i],
+    y = field.v[j + 1][i + 1];
+  if (
+    p === null ||
+    q === null ||
+    r === null ||
+    s === null ||
+    t === null ||
+    w === null ||
+    x === null ||
+    y === null
+  )
+    return false;
+  out.u = (p * (1 - tx) + q * tx) * (1 - ty) + (r * (1 - tx) + s * tx) * ty;
+  out.v = (t * (1 - tx) + w * tx) * (1 - ty) + (x * (1 - tx) + y * tx) * ty;
+  return true;
+}
+
 export function CurrentParticles({
   field,
   dataset,
@@ -80,17 +116,20 @@ export function CurrentParticles({
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05),
       y = depthY(field.depth, exaggeration) + 0.035;
-    state.particles.forEach((p, k) => {
+    const { particles, wet, positions, colors } = state;
+    for (let k = 0; k < particles.length; k++) {
+      const p = particles[k];
       p.age += dt;
-      let velocity = sample(field, p.lon, p.lat);
-      if (!velocity || p.age > p.life) {
-        const pos = state.wet[Math.floor(state.rand() * state.wet.length)];
+      let hasVelocity = sampleInto(field, p.lon, p.lat, scratch);
+      if (!hasVelocity || p.age > p.life) {
+        const pos = wet[Math.floor(state.rand() * wet.length)];
         p.lon = pos[0];
         p.lat = pos[1];
         p.age = 0;
-        velocity = sample(field, p.lon, p.lat);
+        hasVelocity = sampleInto(field, p.lon, p.lat, scratch);
       }
-      const [u, v] = velocity ?? [0, 0];
+      const u = hasVelocity ? scratch.u : 0,
+        v = hasVelocity ? scratch.v : 0;
       // 250,000× time acceleration for legibility, latitude-corrected eastward velocity.
       const dl = (u * 250000) / 111320 / Math.max(0.2, Math.cos((p.lat * Math.PI) / 180)),
         da = (v * 250000) / 111320;
@@ -99,14 +138,21 @@ export function CurrentParticles({
       const x = projectionInfo.x(p.lon),
         z = projectionInfo.z(p.lat),
         base = k * 6;
-      state.positions.set(
-        [x, y, z, x - dl * projectionInfo.scale * 0.28, y, z + da * projectionInfo.scale * 0.28],
-        base,
-      );
+      positions[base] = x;
+      positions[base + 1] = y;
+      positions[base + 2] = z;
+      positions[base + 3] = x - dl * projectionInfo.scale * 0.28;
+      positions[base + 4] = y;
+      positions[base + 5] = z + da * projectionInfo.scale * 0.28;
       const fade = Math.min(1, p.age / 0.6, (p.life - p.age) / 0.6),
         s = Math.max(0, fade);
-      state.colors.set([0.55 * s, 0.92 * s, 1 * s, 0.05 * s, 0.2 * s, 0.3 * s], base);
-    });
+      colors[base] = 0.55 * s;
+      colors[base + 1] = 0.92 * s;
+      colors[base + 2] = 1 * s;
+      colors[base + 3] = 0.05 * s;
+      colors[base + 4] = 0.2 * s;
+      colors[base + 5] = 0.3 * s;
+    }
     state.geometry.attributes.position.needsUpdate = true;
     state.geometry.attributes.color.needsUpdate = true;
   });

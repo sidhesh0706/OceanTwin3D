@@ -216,10 +216,8 @@ function CameraRig({ preset, cameraKey }: { preset: CameraPreset; cameraKey: num
   const controls = useRef<OrbitControlsImpl>(null),
     moving = useRef(true);
   const { camera } = useThree();
-  const target = useMemo(
-    () => new THREE.Vector3(0, preset === 'underwater' ? -2 : -1.1, 0),
-    [preset],
-  );
+  const underwater = preset === 'underwater' || preset.startsWith('dive-');
+  const target = useMemo(() => new THREE.Vector3(0, underwater ? -2 : -1.1, 0), [underwater]);
   const position = useMemo(
     () =>
       new THREE.Vector3(
@@ -312,6 +310,108 @@ function Instruments({
   );
 }
 
+// Shared OceanTwin star language — also used by the splash and panel CSS:
+// ~60% soft white, ~30% cool blue, ~10% brighter cyan. Two static shells
+// (no DOM, no per-frame allocation): a dim 1px-class field plus a sparse
+// brighter tier with one slow global luminance breath. Brightness is kept
+// far below the ocean data by construction; fog-exempt so engine fog
+// (tuned for the region volume) never swallows the backdrop.
+type StarTint = [number, number, number];
+const STAR_WHITES: StarTint[] = [
+  [1, 1, 1],
+  [0.91, 0.95, 0.97],
+  [0.8, 0.84, 0.88],
+];
+const STAR_BLUES: StarTint[] = [
+  [0.23, 0.51, 0.96],
+  [0.15, 0.39, 0.92],
+];
+const STAR_CYANS: StarTint[] = [
+  [0.13, 0.83, 0.93],
+  [0.22, 0.74, 0.97],
+];
+function BackdropStars() {
+  const brightMaterial = useRef<THREE.PointsMaterial>(null);
+  const shells = useMemo(() => {
+    let seed = 20260902;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const pick = (list: StarTint[]) => list[Math.floor(rand() * list.length)] ?? list[0];
+    const make = (count: number, bright: boolean) => {
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const u = rand() * 2 - 1,
+          theta = rand() * Math.PI * 2,
+          r = 55 + rand() * 30,
+          s = Math.sqrt(1 - u * u);
+        positions[i * 3] = r * s * Math.cos(theta);
+        positions[i * 3 + 1] = r * u * 0.6;
+        positions[i * 3 + 2] = r * s * Math.sin(theta);
+        const roll = rand();
+        const c = bright
+          ? roll < 0.5
+            ? pick(STAR_CYANS)
+            : roll < 0.85
+              ? pick(STAR_BLUES)
+              : pick(STAR_WHITES)
+          : roll < 0.68
+            ? pick(STAR_WHITES)
+            : pick(STAR_BLUES);
+        const b = bright ? 0.5 + rand() * 0.4 : 0.12 + rand() * 0.33;
+        colors[i * 3] = c[0] * b;
+        colors[i * 3 + 1] = c[1] * b;
+        colors[i * 3 + 2] = c[2] * b;
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      return g;
+    };
+    return { base: make(620, false), bright: make(90, true) };
+  }, []);
+  useEffect(
+    () => () => {
+      shells.base.dispose();
+      shells.bright.dispose();
+    },
+    [shells],
+  );
+  useFrame(({ clock }) => {
+    const m = brightMaterial.current;
+    if (m) m.opacity = 0.72 + 0.14 * Math.sin(clock.elapsedTime * 0.45);
+  });
+  return (
+    <group renderOrder={-1}>
+      <points geometry={shells.base} frustumCulled={false}>
+        <pointsMaterial
+          size={1.5}
+          sizeAttenuation={false}
+          vertexColors
+          transparent
+          opacity={0.8}
+          depthWrite={false}
+          fog={false}
+        />
+      </points>
+      <points geometry={shells.bright} frustumCulled={false}>
+        <pointsMaterial
+          ref={brightMaterial}
+          size={2.5}
+          sizeAttenuation={false}
+          vertexColors
+          transparent
+          opacity={0.8}
+          depthWrite={false}
+          fog={false}
+        />
+      </points>
+    </group>
+  );
+}
+
 function World(props: SceneProps) {
   const {
     dataset,
@@ -337,8 +437,9 @@ function World(props: SceneProps) {
   const regional = dataset.synthetic;
   return (
     <>
-      <color attach="background" args={['#08131e']} />
-      <fog attach="fog" args={['#08131e', 35, 75]} />
+      <color attach="background" args={['#020407']} />
+      <fog attach="fog" args={['#020407', 35, 75]} />
+      <BackdropStars />
       <ambientLight intensity={1.3} />
       <directionalLight position={[-7, 14, 5]} intensity={2} color="#b4d8ed" />
       <CameraRig preset={preset} cameraKey={cameraKey} />
