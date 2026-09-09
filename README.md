@@ -33,7 +33,8 @@ See **[docs/DEMO.md](docs/DEMO.md)** for a five-minute script, exact analysis co
 
 ## Features
 
-- Global globe with local Natural Earth imagery, basin camera presets and geographic picking.
+- Global globe with locally bundled NASA Blue Marble imagery, basin camera presets and geographic picking. Ocean overlays can be toggled independently of the Earth basemap.
+- Click an Argo float to open a broad local ocean cutout with coastline, currents, depth sections and its comparison profile. Switch between Top-down and 3D ocean, or return with Back to Earth. The Indian Ocean window spans 40–105°E and approximately 30°S–30°N on the native model grid.
 - Temperature, salinity, chlorophyll and derived current speed, with units and editable color ranges.
 - Continuous depth interpolation and 13 weekly model frames with playback and scrubbing.
 - Selected-depth maps draped on the globe; these show subsurface values at their geographic locations.
@@ -119,4 +120,4 @@ Interactive [API documentation](http://127.0.0.1:8000/docs) lists all parameters
 
 Source locations: backend normalization in `backend/app/adapters/netcdf.py`, analysis in `backend/app/services/ocean.py`, globe in `frontend/src/explorer/GlobeExplorer.tsx`, controls in `frontend/src/App.tsx`, and analysis panels in `frontend/src/components/SpatialAnalysis.tsx`.
 
-Natural Earth geography is public domain. Cesium is Apache-2.0; bundled third-party notices remain with its assets. Dependency licenses apply. Real data connectors, operational forecasting, assimilation, QC workflows and validated INCOIS datasets remain future work.
+Natural Earth geography is public domain. NASA Blue Marble imagery is credited to NASA Earth Observatory / Reto Stöckli; see `frontend/public/earth-imagery.md` for the original source. It is static geographic context, not current ocean observations. Cesium is Apache-2.0; bundled third-party notices remain with its assets. Dependency licenses apply. Real data connectors, operational forecasting, assimilation, QC workflows and validated INCOIS datasets remain future work.

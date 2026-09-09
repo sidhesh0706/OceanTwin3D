@@ -60,3 +60,30 @@ def test_spatial_routes_and_seam():
         assert result.status_code == 200
         assert result.json()['total_distance_km'] < 2300
         assert client.get('/api/ocean/stats?lat_min=15&lat_max=5&lon_min=65&lon_max=85').status_code == 422
+
+
+def test_regional_cutout_preserves_values_and_dateline():
+    from backend.app.services.region import regional_view
+    service = OceanService(Path(__file__).resolve().parents[1] / 'data/demo_ocean.nc', Path(__file__).resolve().parents[1] / 'data/observations.json')
+    for lat, lon in [(-8.6, -140), (0, 179), (12, 65)]:
+        view = regional_view(service, lat, lon, 'temperature', 6, 150)
+        ds = view['dataset']
+        assert ds['global'] is False
+        west, east = ds['bounds']['longitude']
+        south, north = ds['bounds']['latitude']
+        assert 0 < east - west <= 65
+        if lon == 65:
+            assert west <= 45 and east >= 100 and north >= 28 and south <= -12
+        assert west <= lon <= east and south <= lat <= north
+        frame = view['frame']
+        values = np.asarray(frame['slice']['values'], dtype=float)
+        assert values.shape == (len(frame['slice']['latitudes']), len(frame['slice']['longitudes']))
+        original = service.adapter.at_depth(service.adapter.ds.temperature.isel(time=6), 150)
+        expected = original.sel(latitude=frame['slice']['latitudes'], longitude=[(x + 180) % 360 - 180 for x in frame['slice']['longitudes']])
+        np.testing.assert_allclose(values, expected.values, atol=1e-5, equal_nan=True)
+        assert frame['currents']['longitudes'] == frame['slice']['longitudes']
+        assert all(west <= o['longitude'] <= east for o in view['observations'])
+        for feature in view['land']['features']:
+            from shapely.geometry import shape
+            x0, y0, x1, y1 = shape(feature['geometry']).bounds
+            assert west <= x0 <= x1 <= east and south <= y0 <= y1 <= north

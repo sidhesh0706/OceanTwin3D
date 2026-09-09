@@ -164,6 +164,12 @@ def ocean_profile(
     return safe(lambda: get_service().profile(latitude, longitude, time))
 
 
+@app.get('/api/ocean/region')
+def ocean_region(latitude: float, longitude: float, variable: str = 'temperature', time: int = Query(0, ge=0), depth: float = Query(0, ge=0)):
+    from backend.app.services.region import regional_view
+    return safe(lambda: regional_view(get_service(), latitude, longitude, variable, time, depth))
+
+
 @app.get("/api/ocean/transect")
 def ocean_transect(
     lat1: float,

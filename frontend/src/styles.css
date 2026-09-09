@@ -3282,3 +3282,101 @@ input[type='number'] {
   background: #3bd4bf;
   color: #06272a;
 }
+.scene-switcher {
+  position: absolute;
+  z-index: 36;
+  top: calc(var(--top) + 132px);
+  left: calc(var(--rail) + 20px);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  max-width: calc(100% - var(--right) - var(--rail) - 40px);
+  flex-wrap: wrap;
+}
+.app .scene-switcher button {
+  padding: 8px 12px;
+  border: 1px solid #345466;
+  border-radius: 7px;
+  background: #0b202ded;
+  color: #c6e5ef;
+  font-size: 11px;
+  cursor: pointer;
+}
+.app .scene-switcher button.active {
+  border-color: #55d6c2;
+  color: #7af1dc;
+  background: #123638;
+}
+.scene-switcher span {
+  font-size: 11px;
+  color: #95afbe;
+}
+.local-ocean .viewer {
+  left: var(--rail);
+  right: var(--right);
+  top: calc(var(--top) + 120px);
+}
+.local-ocean.has-inspector .viewer {
+  right: calc(var(--right) + 306px);
+}
+.local-ocean .viewer-subtitle {
+  display: none;
+}
+.local-ocean .scene-switcher {
+  top: calc(var(--top) + 80px);
+}
+.local-ocean .viewer-hero {
+  pointer-events: none;
+}
+.local-ocean .scene-attribution {
+  display: none;
+}
+.ocean-loading {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  color: #b2d1df;
+  font-size: 14px;
+}
+.local-ocean .viewer canvas {
+  animation: oceanReveal 0.65s ease both;
+}
+@keyframes oceanReveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.local-ocean.presentation .viewer {
+  right: 20px;
+}
+@media (max-width: 1100px) {
+  .local-ocean.has-inspector .viewer {
+    right: var(--right);
+    bottom: calc(var(--bottom) + 255px);
+  }
+  .local-ocean .inspector-float {
+    width: auto;
+    left: calc(var(--rail) + 8px);
+    right: calc(var(--right) + 8px);
+    height: 245px;
+    max-height: 38vh;
+    top: auto;
+    bottom: calc(var(--bottom) + 5px);
+  }
+  .scene-switcher span {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .local-ocean .viewer canvas {
+    animation: none;
+  }
+}

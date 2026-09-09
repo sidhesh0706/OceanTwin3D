@@ -5,7 +5,7 @@
 1. Open the repository root in PyCharm.
 2. Select the project interpreter: `.venv/Scripts/python.exe`.
 3. Run `run.py` and open [OceanTwin](http://127.0.0.1:8000/).
-4. Confirm **System Ready**, **DEMO DATA**, and **Natural Earth (local)**.
+4. Confirm **System Ready**, **DEMO DATA**, and **NASA Blue Marble (local)**.
 5. Keep the laptop plugged in and use a hardware-accelerated browser. Use the browser's normal zoom. Test the projector layout before speaking.
 6. On a fresh laptop, run `python setup_project.py` while online first. Normal default operation then uses local files.
 
@@ -16,7 +16,7 @@ The explorer opens directly. [The cinematic intro](http://127.0.0.1:8000/?intro)
 | Time | Action | What to say |
 | --- | --- | --- |
 | 0:00–0:40 | Start on the Indian Ocean globe. Rotate it; use View → Earth or Pacific, then Indian. | “OceanTwin brings location, depth, time and instrument profiles into one workspace. These are explicitly synthetic demonstration data.” |
-| 0:40–1:30 | Keep Temperature selected. Move Depth from 0 to 500, then 2000 m. | “The geographic map updates to the selected depth. Warm surface water gives way to cooler deep water. Values between model levels are interpolated.” |
+| 0:40–1:30 | Click an Indian Ocean Argo marker, or select one from Observations. Use Top-down, then 3D ocean. Move Depth from 0 to 500, then 2000 m. | “We move from Earth into a broad local ocean section. Coastlines preserve geographic context, while the slice and side sections expose the model water column. Values between model levels are interpolated.” |
 | 1:30–2:00 | Select 3D Volume. Open Depth and try the scale controls, then return to Depth slice and depth 0. | “This is a schematic stack of model depth layers. Vertical exaggeration is displayed; this is not literal planetary-scale bathymetry.” |
 | 2:00–2:30 | Choose Current Speed or Current field. Press Play, observe one or two frames, then pause. | “The vectors follow the model's u/v field at the chosen depth. Motion is accelerated to make the flow readable.” |
 | 2:30–3:20 | Expand Observations in the right panel and choose an Argo float. Enable Compare with model. Select model frame 7 (12 February) for matching dates. | “We interpolate the model at the instrument position and depth and calculate RMSE, MAE and bias. The timestamps show whether the comparison is time-aligned.” |
@@ -36,6 +36,8 @@ Model frames use zero-based indices internally: frame 7 on screen is index 6, th
 - **Analysis**: real probe, transect and region results; coordinate inputs also work without map clicking.
 - **Settings**: sensor/current/grid toggles, color limits, particle density, NetCDF upload.
 - **Observations**: expandable selectable instrument list.
+- **Earth imagery / Ocean overlay**: keep the natural globe visible or display the selected scientific field.
+- **Back to Earth / Top-down / 3D ocean**: move between the globe, flat ocean map and angled water column.
 - **P**: presentation mode. **Space**: play/pause when focus is on the page. **Esc**: exit overlays.
 - **Demo Tour**: short automated overview; stop it before answering detailed questions.
 

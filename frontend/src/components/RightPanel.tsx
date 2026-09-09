@@ -55,8 +55,10 @@ export function RightPanel({
   ).length;
 
   // Domain label
-  const [latS, latN] = dataset.bounds.latitude;
-  const [lonW, lonE] = dataset.bounds.longitude;
+  const [latS, latN] = dataset.bounds.latitude.map((v) => +v.toFixed(2));
+  const [lonW, lonE] = dataset.bounds.longitude.map(
+    (v) => +(((((v + 180) % 360) + 360) % 360) - 180).toFixed(2),
+  );
   const latLabel = `${Math.abs(latS)}°${latS < 0 ? 'S' : 'N'} – ${Math.abs(latN)}°${latN < 0 ? 'S' : 'N'}`;
   const lonLabel = dataset.global
     ? 'Global · All Basins (180°W – 180°E)'

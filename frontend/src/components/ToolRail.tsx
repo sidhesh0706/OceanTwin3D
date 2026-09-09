@@ -20,6 +20,7 @@ import { ColorRangeInputs } from './ColorRangeInputs';
 type Panel = 'view' | 'layers' | 'depth' | 'settings' | 'analysis' | null;
 
 interface Props {
+  local?: boolean;
   dataset: Dataset;
   preset: CameraPreset;
   onCamera: (p: CameraPreset) => void;
@@ -270,7 +271,7 @@ export function ToolRail(p: Props) {
                   className={p.exaggeration === n ? 'active' : ''}
                   onClick={() => p.onExaggeration(n)}
                 >
-                  {n * 100}×
+                  {p.local ? n : n * 100}×
                 </button>
               ))}
             </div>

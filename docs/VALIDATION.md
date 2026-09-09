@@ -4,7 +4,7 @@ Scope: presentation preparation on `codex/presentation-ready`, based on teammate
 
 ## Automated checks
 
-- Backend: **27 tests passed** on Windows / Python 3.13.
+- Backend: **28 tests passed** on Windows / Python 3.13.
 - Frontend: **3 interpolation tests passed** using Node's test runner.
 - TypeScript and Vite production build: passed.
 - Prettier source/style checks: passed.
@@ -12,6 +12,8 @@ Scope: presentation preparation on `codex/presentation-ready`, based on teammate
 Backend coverage includes data dimensions, finite/null serialization, interpolation, temporal changes, current fields, independent NumPy comparison metrics, malformed requests, upload validation and preservation of the previous dataset, periodic profile/inspection sampling, short-arc dateline transects, poleward great-circle curvature, invalid arc endpoints, and independently calculated region statistics.
 
 Frontend tests check nonuniform coordinate interpolation against an analytic plane, periodic seam spacing and longitude normalization, and missing-cell preservation.
+
+Regional cutout regression checks compare every returned slice cell with the source model, verify Pacific date-line continuity and current-grid alignment, check clipped coastline bounds, and assert that the Indian Ocean view includes the original prototype's domain. The local renderer fits its camera to the available viewport and exposes two native-data boundary sections.
 
 The regenerated demo has 22 instruments, each with nonempty profiles; every supported observation variable has finite matched comparison levels in the regression suite.
 
@@ -34,7 +36,9 @@ Desktop layouts were inspected with full-page screenshots. The in-app browser sc
 
 ## Local/offline operation
 
-Cesium 1.128.0 is an exact npm dependency. The predev/prebuild script copies its engine, workers, assets, styles and license notices into the generated local public directory. Default viewer creation disables the implicit ion basemap and uses bundled Natural Earth tiles. Synthetic NetCDF, sensor profiles, geography and fonts require no external service during normal default operation.
+Cesium 1.128.0 is an exact npm dependency. The predev/prebuild script copies its engine, workers, assets, styles and license notices into the generated local public directory. Default viewer creation disables the implicit ion basemap and uses bundled NASA Blue Marble imagery, with Natural Earth tiles as fallback. Synthetic NetCDF, sensor profiles, geography and fonts require no external service during normal default operation.
+
+The initial float-to-ocean transition was visually checked in Chromium. The final wider cutout, responsive camera fit and NASA image passed build/data checks; the browser automation session became unavailable before the final visual pass. Rehearse the three view controls on the presentation laptop.
 
 External ion layers are opt-in and were not tested with an account token. A fresh installation still needs network access for dependencies. No system-wide network setting was changed during verification.
 

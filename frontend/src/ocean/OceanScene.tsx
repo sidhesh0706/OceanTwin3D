@@ -62,13 +62,7 @@ function Geography({ land, dataset }: { land: Land | null; dataset: Dataset }) {
     return result;
   }, [land, dataset]);
   useEffect(() => () => shapes.forEach((s) => s.geometry.dispose()), [shapes]);
-  // Bundled geometry covers only the Indian Ocean region. Hide on other uploaded domains.
-  const regional =
-    dataset.bounds.longitude[0] === 45 &&
-    dataset.bounds.longitude[1] === 100 &&
-    dataset.bounds.latitude[0] === -12 &&
-    dataset.bounds.latitude[1] === 28;
-  if (!regional) return null;
+  // Geometry is clipped by the backend to this local model window.
   return (
     <group>
       {shapes.map((s, i) => (
@@ -97,17 +91,19 @@ function Reference({
   exaggeration,
   grid,
   depth,
+  topDown,
 }: {
   dataset: Dataset;
   exaggeration: number;
   grid: boolean;
   depth: number;
+  topDown: boolean;
 }) {
   const p = projection(dataset),
     w = p.width / 2,
     h = p.height / 2,
     bottom = depthY(dataset.bounds.depth[1], exaggeration);
-  const levels = [0, ...dataset.depths.filter((d) => d >= 100)];
+  const levels = topDown ? [0] : [0, ...dataset.depths.filter((d) => d >= 500)];
   const unique = [...new Set(levels)].filter(
     (_, i, a) => a.length < 7 || i % 2 === 0 || i === a.length - 1,
   );
@@ -203,35 +199,71 @@ function Reference({
           );
         })}
       <Html position={[-w, 0, h + 0.35]} center>
-        <span className="geo-coordinate">{dataset.bounds.longitude[0]}° E</span>
+        <span className="geo-coordinate">{geoLabel(dataset.bounds.longitude[0], true)}</span>
       </Html>
       <Html position={[w, 0, h + 0.35]} center>
-        <span className="geo-coordinate">{dataset.bounds.longitude[1]}° E</span>
+        <span className="geo-coordinate">{geoLabel(dataset.bounds.longitude[1], true)}</span>
       </Html>
     </group>
   );
 }
 
-function CameraRig({ preset, cameraKey }: { preset: CameraPreset; cameraKey: number }) {
+function geoLabel(value: number, longitude = false) {
+  const n = longitude ? ((((value + 180) % 360) + 360) % 360) - 180 : value;
+  return `${Math.abs(n).toFixed(1)}°${longitude ? (n < 0 ? 'W' : 'E') : n < 0 ? 'S' : 'N'}`;
+}
+
+function CameraRig({
+  preset,
+  cameraKey,
+  dataset,
+  exaggeration,
+}: {
+  preset: CameraPreset;
+  cameraKey: number;
+  dataset: Dataset;
+  exaggeration: number;
+}) {
   const controls = useRef<OrbitControlsImpl>(null),
     moving = useRef(true);
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const underwater = preset === 'underwater' || preset.startsWith('dive-');
-  const target = useMemo(() => new THREE.Vector3(0, underwater ? -2 : -1.1, 0), [underwater]);
-  const position = useMemo(
-    () =>
-      new THREE.Vector3(
-        ...((preset === 'surface'
-          ? [0, 29, 0.1]
-          : preset === 'underwater'
-            ? [13, 1, 19]
-            : [13, 14, 21]) as [number, number, number]),
-      ),
-    [preset],
+  const bottom = depthY(dataset.bounds.depth[1], exaggeration);
+  const target = useMemo(
+    () => new THREE.Vector3(0, preset === 'surface' ? 0 : bottom / 2, 0),
+    [preset, bottom],
   );
+  const position = useMemo(() => {
+    const p = projection(dataset);
+    const direction = new THREE.Vector3(
+      ...((preset === 'surface' ? [0, 1, 0.001] : underwater ? [1, 0.15, 1.4] : [1, 1.05, 1.5]) as [
+        number,
+        number,
+        number,
+      ]),
+    ).normalize();
+    const right = new THREE.Vector3()
+      .crossVectors(new THREE.Vector3(0, 1, 0), direction)
+      .normalize();
+    const up = new THREE.Vector3().crossVectors(direction, right).normalize();
+    const tanV = Math.tan(THREE.MathUtils.degToRad(43 / 2));
+    const tanH = (tanV * size.width) / Math.max(1, size.height);
+    let distance = 7;
+    for (const x of [-p.width / 2 - 0.8, p.width / 2 + 0.8])
+      for (const z of [-p.height / 2 - 0.5, p.height / 2 + 0.5])
+        for (const y of preset === 'surface' ? [0] : [0, bottom]) {
+          const v = new THREE.Vector3(x, y, z).sub(target);
+          distance = Math.max(
+            distance,
+            v.dot(direction) + Math.abs(v.dot(right)) / tanH,
+            v.dot(direction) + Math.abs(v.dot(up)) / tanV,
+          );
+        }
+    return target.clone().addScaledVector(direction, distance * 1.08);
+  }, [preset, underwater, dataset, bottom, target, size.width, size.height]);
   useEffect(() => {
     moving.current = true;
-  }, [preset, cameraKey]);
+  }, [preset, cameraKey, position]);
   useFrame((_, dt) => {
     if (!moving.current || !controls.current) return;
     camera.position.lerp(position, 1 - Math.exp(-dt * 4));
@@ -246,7 +278,7 @@ function CameraRig({ preset, cameraKey }: { preset: CameraPreset; cameraKey: num
       enableDamping
       dampingFactor={0.08}
       minDistance={7}
-      maxDistance={52}
+      maxDistance={100}
       maxPolarAngle={Math.PI * 0.86}
       onStart={() => {
         moving.current = false;
@@ -434,7 +466,11 @@ function World(props: SceneProps) {
     threshold,
   } = props;
   const p = projection(dataset);
-  const regional = dataset.synthetic;
+  const regional =
+    dataset.bounds.longitude[0] <= 45 &&
+    dataset.bounds.longitude[1] >= 100 &&
+    dataset.bounds.latitude[1] >= 28 &&
+    dataset.bounds.latitude[0] <= -12;
   return (
     <>
       <color attach="background" args={['#020407']} />
@@ -442,24 +478,34 @@ function World(props: SceneProps) {
       <BackdropStars />
       <ambientLight intensity={1.3} />
       <directionalLight position={[-7, 14, 5]} intensity={2} color="#b4d8ed" />
-      <CameraRig preset={preset} cameraKey={cameraKey} />
+      <CameraRig
+        preset={preset}
+        cameraKey={cameraKey}
+        dataset={dataset}
+        exaggeration={exaggeration}
+      />
       <Reference
         dataset={dataset}
         exaggeration={exaggeration}
         grid={grid}
         depth={frame.slice.depth ?? 0}
+        topDown={preset === 'surface'}
       />
       <Geography land={land} dataset={dataset} />
-      {mode !== 'iso' && (
-        <SectionCurtain
-          dataset={dataset}
-          field={frame.volume}
-          variable={variable}
-          range={range}
-          opacity={opacity * 0.27}
-          exaggeration={exaggeration}
-        />
-      )}
+      {mode !== 'iso' &&
+        preset !== 'surface' &&
+        (['south', 'east'] as const).map((edge) => (
+          <SectionCurtain
+            key={edge}
+            edge={edge}
+            dataset={dataset}
+            field={frame.volume}
+            variable={variable}
+            range={range}
+            opacity={opacity * 0.8}
+            exaggeration={exaggeration}
+          />
+        ))}
       <Volume
         dataset={dataset}
         field={frame.volume}

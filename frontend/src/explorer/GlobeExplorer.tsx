@@ -11,6 +11,7 @@ import { sample } from '../ocean/CurrentParticles';
 import type { CameraPreset, Dataset, Frame, Mode, Observation, Variable } from '../types';
 
 interface Props {
+  showField: boolean;
   enabled: boolean;
   dataset: Dataset;
   frame: Frame;
@@ -136,7 +137,7 @@ export default function GlobeExplorer(props: Props) {
           }
         }
 
-        let baseType: 'satellite' | 'osm' | 'offline' = 'offline';
+        let baseType: 'satellite' | 'blue-marble' | 'osm' | 'offline' = 'offline';
 
         try {
           viewer.imageryLayers.removeAll(false);
@@ -165,7 +166,21 @@ export default function GlobeExplorer(props: Props) {
           }
         }
 
-        // Tier 2 — OpenStreetMap
+        // Locally bundled NASA imagery keeps the presentation independent of tile services.
+        if (baseType === 'offline' && Cesium.SingleTileImageryProvider?.fromUrl) {
+          try {
+            const earth = await Cesium.SingleTileImageryProvider.fromUrl('/earth-blue-marble.jpg', {
+              credit: 'NASA Earth Observatory · Reto Stöckli · Blue Marble (January 2004)',
+            });
+            if (cancelled) return;
+            viewer.imageryLayers.addImageryProvider(earth);
+            baseType = 'blue-marble';
+          } catch {
+            /* Fall back to bundled Natural Earth tiles. */
+          }
+        }
+
+        // Natural Earth tile fallback
         if (baseType === 'offline' && Cesium.TileMapServiceImageryProvider) {
           try {
             const osm = await Cesium.TileMapServiceImageryProvider.fromUrl(
@@ -195,7 +210,11 @@ export default function GlobeExplorer(props: Props) {
         }
 
         live.current.onBaseLayer?.(
-          baseType === 'satellite' ? 'satellite' : 'Natural Earth (local)',
+          baseType === 'satellite'
+            ? 'satellite'
+            : baseType === 'blue-marble'
+              ? 'NASA Blue Marble (local)'
+              : 'Natural Earth (local)',
         );
 
         // ── Globe cosmetics ───────────────────────────────────────────────
@@ -207,6 +226,7 @@ export default function GlobeExplorer(props: Props) {
             viewer.clock.currentTime = Cesium.JulianDate.fromIso8601('2026-01-15T06:00:00Z');
           }
           viewer.scene.skyAtmosphere.show = true;
+          if (viewer.scene.skyBox) viewer.scene.skyBox.show = false;
         } catch {
           /* Cosmetic only. */
         }
@@ -463,7 +483,14 @@ export default function GlobeExplorer(props: Props) {
       }
       L.oceanImagery = null;
     }
-    if (!v || !Cesium || !globeReady || (mode !== 'slice' && mode !== 'currents')) return;
+    if (
+      !v ||
+      !Cesium ||
+      !globeReady ||
+      !props.showField ||
+      (mode !== 'slice' && mode !== 'currents')
+    )
+      return;
     try {
       const slice = frame.slice;
       const rows = slice.values as (number | null)[][];
@@ -518,7 +545,7 @@ export default function GlobeExplorer(props: Props) {
     } catch {
       /* A bad frame must not break the globe. */
     }
-  }, [frame, variable, mode, range, opacity, globeReady]);
+  }, [frame, variable, mode, range, opacity, globeReady, props.showField]);
 
   // ── Domain outline (Regional datasets only, never global) ──────────────
   useEffect(() => {
@@ -579,7 +606,7 @@ export default function GlobeExplorer(props: Props) {
     }
     L.volumeSlices = [];
     if (!v || !Cesium || !L.points || !globeReady) return;
-    if (mode !== 'volume' && mode !== 'iso') return;
+    if (!props.showField || (mode !== 'volume' && mode !== 'iso')) return;
 
     try {
       const volume = frame.volume;
@@ -683,7 +710,7 @@ export default function GlobeExplorer(props: Props) {
     } catch {
       /* A bad frame must not break the globe. */
     }
-  }, [frame, variable, mode, range, opacity, exaggeration, threshold, globeReady]);
+  }, [frame, variable, mode, range, opacity, exaggeration, threshold, globeReady, props.showField]);
 
   // ── Current field ──────────────────────────────────────────────────────
   // Direction, magnitude and distribution are backend u/v only — no fake particles.
@@ -902,7 +929,7 @@ export default function GlobeExplorer(props: Props) {
   useEffect(() => {
     const v = viewerRef.current;
     if (!v || !globeReady) return;
-    const diving = mode === 'volume' || mode === 'iso';
+    const diving = props.showField && (mode === 'volume' || mode === 'iso');
     try {
       v.scene.globe.translucency.enabled = diving;
       v.scene.globe.translucency.frontFaceAlpha = diving ? 0.15 : 1.0;
@@ -911,7 +938,7 @@ export default function GlobeExplorer(props: Props) {
     } catch {
       /* Older builds keep an opaque globe; layers still render. */
     }
-  }, [mode, globeReady]);
+  }, [mode, globeReady, props.showField]);
 
   if (!enabled) return null;
   if (failed)
@@ -968,11 +995,11 @@ function gradeBaseLayer(viewer: CesiumViewer, type: 'satellite' | 'osm') {
       layer['contrast'] = 1.0;
       layer['gamma'] = 1.0;
     } else {
-      layer['brightness'] = 0.55;
-      layer['saturation'] = 0.25;
-      layer['contrast'] = 1.1;
-      layer['gamma'] = 0.85;
-      layer['hue'] = 0.6;
+      layer['brightness'] = 1.05;
+      layer['saturation'] = 1.15;
+      layer['contrast'] = 1.05;
+      layer['gamma'] = 1.0;
+      layer['hue'] = 0;
     }
   } catch {
     /* Raw imagery remains. */

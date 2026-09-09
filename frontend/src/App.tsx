@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Maximize, Minimize, X, CircleHelp, Waves } from 'lucide-react';
 import { SpatialAnalysis, type AnalysisKind } from './components/SpatialAnalysis';
 import type {
@@ -9,6 +9,7 @@ import type {
   Mode,
   Observation,
   Variable,
+  RegionalView,
 } from './types';
 import { api, request, validateDataset, validateField } from './services/api';
 import GlobeExplorer from './explorer/GlobeExplorer';
@@ -18,6 +19,7 @@ import { RightPanel } from './components/RightPanel';
 import { BottomTimeline } from './components/BottomTimeline';
 import type { ExplorerSeed } from './experience/experienceState';
 import { useModelContext } from './services/useModelContext';
+const OceanScene = lazy(() => import('./ocean/OceanScene'));
 
 const defaultRanges: Record<Variable, [number, number]> = {
   temperature: [2, 31],
@@ -75,6 +77,12 @@ export default function App({
   const [uploading, setUploading] = useState(false);
   const [isFull, setIsFull] = useState(false);
   const [presentation, setPresentation] = useState(false);
+  const [scene, setScene] = useState<'globe' | 'ocean'>('globe');
+  const [showField, setShowField] = useState(false);
+  const [anchor, setAnchor] = useState<Observation | null>(null);
+  const [region, setRegion] = useState<RegionalView | null>(null);
+  const [regionBusy, setRegionBusy] = useState(false);
+  const activeFrame = scene === 'ocean' && region ? region.frame : frame;
 
   // ── Refs ─────────────────────────────────────────────────────────────
   const fileInput = useRef<HTMLInputElement>(null);
@@ -119,6 +127,9 @@ export default function App({
       volumeKeyRef.current = '';
       setFrame(null);
       setSelected(null);
+      setScene('globe');
+      setAnchor(null);
+      setRegion(null);
       setAnalysis(null);
       setPreset(d.global ? 'indian' : 'domain');
       setInspection(null);
@@ -203,10 +214,38 @@ export default function App({
 
   // ── Playback ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!playing || busy || !dataset) return;
+    if (scene !== 'ocean' || !anchor || !frame) {
+      setRegionBusy(false);
+      return;
+    }
+    const controller = new AbortController();
+    setRegionBusy(true);
+    const query = new URLSearchParams({
+      latitude: String(anchor.latitude),
+      longitude: String(anchor.longitude),
+      variable: frame.slice.variable,
+      time: String(frame.slice.time),
+      depth: String(frame.slice.depth ?? 0),
+    });
+    void request<RegionalView>(`/api/ocean/region?${query}`, { signal: controller.signal })
+      .then((value) => {
+        if (!controller.signal.aborted) setRegion(value);
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted)
+          setError(e instanceof Error ? e.message : 'Could not open the local ocean.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setRegionBusy(false);
+      });
+    return () => controller.abort();
+  }, [scene, anchor, frame, revision]);
+
+  useEffect(() => {
+    if (!playing || busy || regionBusy || !dataset) return;
     const t = window.setTimeout(() => setTime((v) => (v + 1) % dataset.times.length), 1250);
     return () => window.clearTimeout(t);
-  }, [playing, busy, dataset, time]);
+  }, [playing, busy, regionBusy, dataset, time]);
 
   // ── Fullscreen ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -244,10 +283,23 @@ export default function App({
     inspectionRequest.current?.abort();
     setSelected(obs);
     setInspection(null);
+    if (obs) {
+      setAnalysis(null);
+      setPlaying(false);
+      setCompare(true);
+      if (scene !== 'ocean' || !region?.observations.some((o) => o.id === obs.id)) {
+        setAnchor(obs);
+        setRegion(null);
+        setScene('ocean');
+        setMode('slice');
+        setPreset('domain');
+        setCameraKey((v) => v + 1);
+      }
+    }
   };
 
   async function inspect(lat: number, lon: number) {
-    if (!frame) return;
+    if (!activeFrame) return;
     if (analysis) {
       setAnalysisPick({ lat, lon });
       return;
@@ -259,8 +311,8 @@ export default function App({
       const value = await api.inspect(
         lat,
         lon,
-        frame.slice.depth ?? 0,
-        frame.slice.time,
+        activeFrame.slice.depth ?? 0,
+        activeFrame.slice.time,
         controller.signal,
       );
       if (!controller.signal.aborted) {
@@ -299,6 +351,7 @@ export default function App({
   }
 
   function chooseVariable(v: Variable) {
+    setShowField(true);
     setVariable(v);
     setRange(
       dataset?.synthetic ? defaultRanges[v] : dataset!.variables.find((m) => m.id === v)!.range,
@@ -306,10 +359,13 @@ export default function App({
     setThreshold(v === 'temperature' ? 20 : (defaultRanges[v][0] + defaultRanges[v][1]) / 2);
   }
   function chooseMode(m: Mode) {
+    setShowField(true);
     setMode(m);
     if (m === 'currents') setCurrents(true);
   }
   function camera(p: CameraPreset) {
+    if (['global', 'indian', 'pacific', 'atlantic', 'southern', 'arctic', 'approach'].includes(p))
+      setScene('globe');
     if (p.startsWith('dive-')) {
       setDepth(Number(p.replace('dive-', '').replace('m', '')));
       setMode('slice');
@@ -354,7 +410,7 @@ export default function App({
         break;
       case 4:
         setArgo(true);
-        setSelected(
+        select(
           observations.find(
             (o) => o.longitude > 50 && o.longitude < 90 && Math.abs(o.latitude) < 25,
           ) ??
@@ -439,7 +495,7 @@ export default function App({
   }
 
   // ── Derived values ────────────────────────────────────────────────────
-  const displayVariable = frame.slice.variable;
+  const displayVariable = (activeFrame ?? frame).slice.variable;
   const meta = dataset.variables.find((v) => v.id === displayVariable)!;
   const displayRange: [number, number] =
     variable === displayVariable
@@ -461,7 +517,9 @@ export default function App({
 
   // ── Main render ───────────────────────────────────────────────────────
   return (
-    <main className={`app ${presentation ? 'presentation' : ''}`}>
+    <main
+      className={`app ${presentation ? 'presentation' : ''} ${scene === 'ocean' ? 'local-ocean' : ''} ${selected || inspection ? 'has-inspector' : ''}`}
+    >
       {/* ── Navbar ──────────────────────────────────────────────────── */}
       <header className="topbar">
         <a className="brand" href="/" aria-label="OceanTwin home">
@@ -511,34 +569,103 @@ export default function App({
 
       {/* ── Cesium globe (fills everything between navbar and timeline) ── */}
       <div className="viewer">
-        <GlobeExplorer
-          enabled={active}
-          dataset={dataset}
-          frame={frame}
-          variable={displayVariable}
-          mode={mode}
-          range={displayRange}
-          opacity={opacity}
-          exaggeration={exaggeration}
-          grid={grid}
-          currents={currents}
-          observations={visibleSensors}
-          density={density}
-          selected={selected?.id ?? null}
-          onSelect={select}
-          onInspect={inspect}
-          preset={preset}
-          cameraKey={cameraKey}
-          threshold={threshold}
-          onBaseLayer={setBaseName}
-        />
+        {scene === 'globe' ? (
+          <GlobeExplorer
+            showField={showField}
+            enabled={active}
+            dataset={dataset}
+            frame={frame}
+            variable={displayVariable}
+            mode={mode}
+            range={displayRange}
+            opacity={opacity}
+            exaggeration={exaggeration}
+            grid={grid}
+            currents={currents}
+            observations={visibleSensors}
+            density={density}
+            selected={selected?.id ?? null}
+            onSelect={select}
+            onInspect={inspect}
+            preset={preset}
+            cameraKey={cameraKey}
+            threshold={threshold}
+            onBaseLayer={setBaseName}
+          />
+        ) : region ? (
+          <Suspense fallback={<div className="ocean-loading">Opening the local water column…</div>}>
+            <OceanScene
+              dataset={region.dataset}
+              frame={region.frame}
+              land={region.land}
+              variable={region.frame.slice.variable}
+              mode={mode}
+              range={displayRange}
+              opacity={opacity}
+              exaggeration={exaggeration}
+              grid={grid}
+              currents={currents}
+              density={density}
+              observations={region.observations.filter((o) =>
+                o.instrument_type === 'ARGO' ? argo : gliders,
+              )}
+              selected={selected?.id ?? null}
+              onSelect={select}
+              onInspect={inspect}
+              preset={preset}
+              cameraKey={cameraKey}
+              threshold={threshold}
+            />
+          </Suspense>
+        ) : (
+          <div className="ocean-loading">
+            Preparing the ocean around {anchor?.id}…
+            <button onClick={() => setScene('globe')}>Back to Earth</button>
+          </div>
+        )}
+      </div>
+      <div className="scene-switcher" aria-label="Earth and local ocean views">
+        {scene === 'ocean' ? (
+          <>
+            <button
+              onClick={() => {
+                setScene('globe');
+                setShowField(false);
+                setSelected(null);
+                setInspection(null);
+                camera('indian');
+              }}
+            >
+              ← Back to Earth
+            </button>
+            <span>{anchor?.id} · local water column</span>
+            <button onClick={() => camera('surface')}>Top-down</button>
+            <button onClick={() => camera('domain')}>3D ocean</button>
+          </>
+        ) : (
+          <>
+            <button className={!showField ? 'active' : ''} onClick={() => setShowField(false)}>
+              Earth imagery
+            </button>
+            <button className={showField ? 'active' : ''} onClick={() => setShowField(true)}>
+              Ocean overlay
+            </button>
+            <span>Select an Argo float to enter the ocean</span>
+          </>
+        )}
       </div>
 
       {/* ── Floating hero text (top-left of globe area) ──────────────── */}
       {!presentation && (
         <div className="viewer-hero">
           <h1 className="viewer-title">
-            Earth&apos;s Ocean, <span className="viewer-title-accent">in Depth</span>
+            {scene === 'ocean' ? (
+              'Inside the ocean'
+            ) : (
+              <>
+                Earth&apos;s Ocean, <span className="viewer-title-accent">in Depth</span>
+              </>
+            )}
           </h1>
           <p className="viewer-subtitle">
             Explore, analyze and understand the ocean
@@ -551,6 +678,7 @@ export default function App({
       {/* ── Left tool rail ────────────────────────────────────────────── */}
       {!presentation && (
         <ToolRail
+          local={scene === 'ocean'}
           dataset={dataset}
           preset={preset}
           onCamera={camera}
@@ -590,8 +718,8 @@ export default function App({
       {/* ── Right panel ───────────────────────────────────────────────── */}
       {!presentation && (
         <RightPanel
-          dataset={dataset}
-          frame={frame}
+          dataset={scene === 'ocean' && region ? region.dataset : dataset}
+          frame={scene === 'ocean' && region ? region.frame : frame}
           variable={variable}
           onVariable={chooseVariable}
           mode={mode}
@@ -602,8 +730,8 @@ export default function App({
           observations={observations}
           argo={argo}
           gliders={gliders}
-          busy={busy}
-          baseName={baseName}
+          busy={busy || regionBusy}
+          baseName={scene === 'ocean' ? 'Local model cutout' : baseName}
           onSelect={select}
         />
       )}
@@ -614,7 +742,7 @@ export default function App({
           key={`${analysis}-${revision}`}
           kind={analysis}
           dataset={dataset}
-          field={frame.slice}
+          field={scene === 'ocean' && region ? region.frame.slice : frame.slice}
           picked={analysisPick}
           onClose={() => setAnalysis(null)}
         />
@@ -622,7 +750,7 @@ export default function App({
       {(selected || inspection) && (
         <Inspector
           dataset={dataset}
-          field={frame.slice}
+          field={(activeFrame ?? frame).slice}
           observations={observations}
           selected={selected}
           onSelect={select}
@@ -687,7 +815,9 @@ export default function App({
 
       {/* ── Scene attribution ─────────────────────────────────────────── */}
       <div className="scene-attribution">
-        Cesium · WGS84{baseName ? ` · ${baseName}` : ''}
+        {scene === 'ocean'
+          ? 'Local model cutout · depth schematically exaggerated'
+          : `Cesium · WGS84 · ${baseName}`}
         {mode === 'volume' || mode === 'iso'
           ? ` · Depth scale ${exaggeration * 100}× (schematic)`
           : ' · Selected-depth map'}
@@ -708,7 +838,7 @@ export default function App({
       />
 
       {/* ── Toast notifications ───────────────────────────────────────── */}
-      {busy && (
+      {(busy || regionBusy) && (
         <div className="update-toast">
           <span className="spinner" />
           Preparing model frame · previous frame shown

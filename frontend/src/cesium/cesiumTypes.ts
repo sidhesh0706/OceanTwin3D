@@ -118,6 +118,7 @@ export interface CesiumViewer {
     };
     primitives: { add(primitive: unknown): void; remove(primitive: unknown): void };
     skyAtmosphere: { show: boolean };
+    skyBox?: { show: boolean };
     terrainProvider: unknown;
     screenSpaceCameraController: CesiumCameraLock;
     setTerrain?: (terrain: unknown) => void;
@@ -147,7 +148,10 @@ export interface CesiumStatic {
   };
   UrlTemplateImageryProvider?: new (options: Record<string, unknown>) => unknown;
   TileMapServiceImageryProvider?: { fromUrl(url: string): Promise<unknown> };
-  SingleTileImageryProvider?: new (options: Record<string, unknown>) => unknown;
+  SingleTileImageryProvider?: {
+    new (options: Record<string, unknown>): unknown;
+    fromUrl?: (url: string, options?: Record<string, unknown>) => Promise<unknown>;
+  };
   Rectangle: { fromDegrees(west: number, south: number, east: number, north: number): unknown };
   CustomDataSource?: new (name: string) => CesiumDataSourceHandle;
   GeoJsonDataSource?: {

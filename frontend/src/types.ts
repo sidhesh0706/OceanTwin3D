@@ -132,3 +132,9 @@ export interface Frame {
   volume: Field;
   currents: Currents | null;
 }
+export interface RegionalView {
+  dataset: Dataset;
+  frame: Frame;
+  observations: Observation[];
+  land: Land;
+}
