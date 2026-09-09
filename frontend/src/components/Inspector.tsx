@@ -66,9 +66,7 @@ export function Inspector({
   return (
     <aside className="inspector-float">
       <div className="panel-heading">
-        <span>
-          {selected ? 'OBSERVATION INSPECTOR' : 'POINT INSPECTION'}
-        </span>
+        <span>{selected ? 'OBSERVATION INSPECTOR' : 'POINT INSPECTION'}</span>
         <button
           className="icon-button"
           aria-label="Close inspector"
@@ -167,7 +165,6 @@ export function Inspector({
                     <YAxis
                       type="number"
                       dataKey="depth"
-                      reversed
                       domain={[0, selected.max_depth]}
                       tick={{ fill: '#91a4b5', fontSize: 10 }}
                       tickLine={false}

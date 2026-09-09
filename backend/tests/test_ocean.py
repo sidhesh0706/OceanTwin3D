@@ -101,6 +101,7 @@ def test_comparison_metrics_against_independent_numpy(client):
                 f"/api/compare/{sensor['id']}?variable={variable}"
             ).json()
             assert result["time_offset_hours"] == 0
+            assert result["matched_samples"] > 0
             assert result["matched_samples"] == len(result["profiles"])
             residuals = np.array(
                 [p["model"] - p["observed"] for p in result["profiles"]]

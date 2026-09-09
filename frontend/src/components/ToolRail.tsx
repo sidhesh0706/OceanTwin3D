@@ -20,6 +20,7 @@ import { ColorRangeInputs } from './ColorRangeInputs';
 type Panel = 'view' | 'layers' | 'depth' | 'settings' | 'analysis' | null;
 
 interface Props {
+  local?: boolean;
   dataset: Dataset;
   preset: CameraPreset;
   onCamera: (p: CameraPreset) => void;
@@ -56,26 +57,26 @@ interface Props {
 }
 
 const GLOBAL_PRESETS: { id: CameraPreset; label: string; desc: string }[] = [
-  { id: 'global',   label: 'Earth', desc: 'Full global view' },
+  { id: 'global', label: 'Earth', desc: 'Full global view' },
   { id: 'approach', label: 'Approach', desc: 'Descend toward domain' },
-  { id: 'domain',   label: 'Ocean Domain', desc: 'Fly to model domain' },
-  { id: 'surface',  label: 'Surface', desc: 'Ocean surface view' },
+  { id: 'domain', label: 'Ocean Domain', desc: 'Fly to model domain' },
+  { id: 'surface', label: 'Surface', desc: 'Ocean surface view' },
 ];
 
 const BASIN_PRESETS: { id: CameraPreset; label: string; desc: string }[] = [
-  { id: 'pacific',  label: 'Pacific',   desc: 'Central Pacific Ocean' },
-  { id: 'atlantic', label: 'Atlantic',  desc: 'Central Atlantic Ocean' },
-  { id: 'indian',   label: 'Indian',    desc: 'Indian Ocean warm pool' },
-  { id: 'southern', label: 'Southern',  desc: 'Antarctic Circumpolar' },
-  { id: 'arctic',   label: 'Arctic',    desc: 'Arctic Ocean' },
+  { id: 'pacific', label: 'Pacific', desc: 'Central Pacific Ocean' },
+  { id: 'atlantic', label: 'Atlantic', desc: 'Central Atlantic Ocean' },
+  { id: 'indian', label: 'Indian', desc: 'Indian Ocean warm pool' },
+  { id: 'southern', label: 'Southern', desc: 'Antarctic Circumpolar' },
+  { id: 'arctic', label: 'Arctic', desc: 'Arctic Ocean' },
 ];
 
 const DIVE_PRESETS: { id: CameraPreset; label: string; desc: string }[] = [
-  { id: 'underwater', label: 'Underwater',   desc: 'Dive below surface' },
-  { id: 'dive-200m',  label: '200 m',        desc: 'Upper mesopelagic' },
-  { id: 'dive-500m',  label: '500 m',        desc: 'Mesopelagic zone' },
-  { id: 'dive-1000m', label: '1,000 m',      desc: 'Bathypelagic zone' },
-  { id: 'dive-2000m', label: '2,000 m',      desc: 'Abyssal zone' },
+  { id: 'underwater', label: 'Underwater', desc: 'Dive below surface' },
+  { id: 'dive-200m', label: '200 m', desc: 'Upper mesopelagic' },
+  { id: 'dive-500m', label: '500 m', desc: 'Mesopelagic zone' },
+  { id: 'dive-1000m', label: '1,000 m', desc: 'Bathypelagic zone' },
+  { id: 'dive-2000m', label: '2,000 m', desc: 'Abyssal zone' },
 ];
 
 export function ToolRail(p: Props) {
@@ -88,11 +89,11 @@ export function ToolRail(p: Props) {
       <nav className="tool-rail" aria-label="Explorer tools">
         {(
           [
-            { id: 'view',     Icon: Globe,     label: 'View' },
-            { id: 'layers',   Icon: Layers,    label: 'Layers' },
-            { id: 'depth',    Icon: BarChart2,  label: 'Depth' },
-            { id: 'analysis', Icon: Activity,  label: 'Analysis' },
-            { id: 'settings', Icon: Settings,  label: 'Settings' },
+            { id: 'view', Icon: Globe, label: 'View' },
+            { id: 'layers', Icon: Layers, label: 'Layers' },
+            { id: 'depth', Icon: BarChart2, label: 'Depth' },
+            { id: 'analysis', Icon: Activity, label: 'Analysis' },
+            { id: 'settings', Icon: Settings, label: 'Settings' },
           ] as const
         ).map(({ id, Icon, label }) => (
           <button
@@ -127,7 +128,9 @@ export function ToolRail(p: Props) {
                 <span className="fp-preset-desc">{desc}</span>
               </button>
             ))}
-            <p className="fp-section-label" style={{ marginTop: 14 }}>OCEAN BASINS</p>
+            <p className="fp-section-label" style={{ marginTop: 14 }}>
+              OCEAN BASINS
+            </p>
             {BASIN_PRESETS.map(({ id, label, desc }) => (
               <button
                 key={id}
@@ -141,7 +144,9 @@ export function ToolRail(p: Props) {
                 <span className="fp-preset-desc">{desc}</span>
               </button>
             ))}
-            <p className="fp-section-label" style={{ marginTop: 14 }}>DIVE</p>
+            <p className="fp-section-label" style={{ marginTop: 14 }}>
+              DIVE
+            </p>
             {DIVE_PRESETS.filter((d) => {
               const depthM = parseInt(d.id.replace('dive-', '').replace('m', ''), 10);
               return isNaN(depthM) || depthM <= p.dataset.bounds.depth[1];
@@ -183,8 +188,8 @@ export function ToolRail(p: Props) {
             </p>
             {(
               [
-                { id: 'slice',    label: 'Depth Slice', Icon: Layers },
-                { id: 'volume',   label: '3D Volume',   Icon: Box },
+                { id: 'slice', label: 'Depth Slice', Icon: Layers },
+                { id: 'volume', label: '3D Volume', Icon: Box },
                 { id: 'currents', label: 'Current Field', Icon: Waves },
               ] as const
             ).map(({ id, label, Icon }) => (
@@ -266,7 +271,7 @@ export function ToolRail(p: Props) {
                   className={p.exaggeration === n ? 'active' : ''}
                   onClick={() => p.onExaggeration(n)}
                 >
-                  {n}×
+                  {p.local ? n : n * 100}×
                 </button>
               ))}
             </div>
@@ -290,7 +295,7 @@ export function ToolRail(p: Props) {
               <Ruler size={14} />
               <span>
                 <strong>Transect</strong>
-                <small>Draw path · depth cross-section</small>
+                <small>Two endpoints · fixed-depth section</small>
               </span>
             </button>
             <button
@@ -303,7 +308,7 @@ export function ToolRail(p: Props) {
               <TrendingUp size={14} />
               <span>
                 <strong>Region Stats</strong>
-                <small>Area mean · min · max · std</small>
+                <small>Grid-cell mean · min · max · std</small>
               </span>
             </button>
             <button
@@ -349,10 +354,10 @@ export function ToolRail(p: Props) {
           <div className="fp-body">
             <p className="fp-section-label">OVERLAYS</p>
             {[
-              { name: 'Argo floats',      value: p.argo,     set: p.onArgo },
-              { name: 'Gliders',          value: p.gliders,  set: p.onGliders },
-              { name: 'Current vectors',  value: p.currents, set: p.onCurrents },
-              { name: 'Reference grid',   value: p.grid,     set: p.onGrid },
+              { name: 'Argo floats', value: p.argo, set: p.onArgo },
+              { name: 'Gliders', value: p.gliders, set: p.onGliders },
+              { name: 'Current vectors', value: p.currents, set: p.onCurrents },
+              { name: 'Reference grid', value: p.grid, set: p.onGrid },
             ].map((o) => (
               <label key={o.name} className="fp-toggle-row">
                 <span>{o.name}</span>
@@ -371,9 +376,7 @@ export function ToolRail(p: Props) {
             <ColorRangeInputs
               range={p.range}
               onChange={p.onRange}
-              onReset={() =>
-                p.onRange(p.dataset.variables.find((v) => v.id === p.variable)!.range)
-              }
+              onReset={() => p.onRange(p.dataset.variables.find((v) => v.id === p.variable)!.range)}
             />
             <p className="fp-section-label" style={{ marginTop: 14 }}>
               PARTICLE DENSITY

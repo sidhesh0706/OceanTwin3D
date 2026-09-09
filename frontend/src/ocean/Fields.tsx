@@ -14,30 +14,41 @@ interface Props {
   exaggeration: number;
 }
 // South boundary section uses the actual depth-resolved model cells, not decorative bathymetry.
-export function SectionCurtain({ dataset, field, variable, range, opacity, exaggeration }: Props) {
+export function SectionCurtain({
+  dataset,
+  field,
+  variable,
+  range,
+  opacity,
+  exaggeration,
+  edge = 'south',
+}: Props & { edge?: 'south' | 'east' }) {
   const geometry = useMemo(() => {
     const p = projection(dataset),
       layers = field.values as (number | null)[][][];
-    const nx = field.longitudes.length,
+    const nx = edge === 'south' ? field.longitudes.length : field.latitudes.length,
       positions: number[] = [],
       colors: number[] = [],
       indices: number[] = [];
     const color = new THREE.Color();
-    layers.forEach((layer, k) =>
-      layer[0].forEach((value, i) => {
+    const rows = layers.map((layer) =>
+      edge === 'south' ? layer[0] : layer.map((row) => row[row.length - 1]),
+    );
+    rows.forEach((row, k) =>
+      row.forEach((value, i) => {
         positions.push(
-          p.x(field.longitudes[i]),
+          p.x(
+            edge === 'south' ? field.longitudes[i] : field.longitudes[field.longitudes.length - 1],
+          ),
           depthY(field.depths[k], exaggeration),
-          p.z(field.latitudes[0]),
+          p.z(edge === 'south' ? field.latitudes[0] : field.latitudes[i]),
         );
         dataColor(value ?? range[0], variable, ...range, color);
         colors.push(color.r, color.g, color.b);
         if (
           k < layers.length - 1 &&
           i < nx - 1 &&
-          [value, layer[0][i + 1], layers[k + 1][0][i], layers[k + 1][0][i + 1]].every(
-            (v) => v !== null,
-          )
+          [value, row[i + 1], rows[k + 1][i], rows[k + 1][i + 1]].every((v) => v !== null)
         ) {
           const a = k * nx + i;
           indices.push(a, a + 1, a + nx, a + 1, a + nx + 1, a + nx);
@@ -49,7 +60,7 @@ export function SectionCurtain({ dataset, field, variable, range, opacity, exagg
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geo.setIndex(indices);
     return geo;
-  }, [dataset, field, variable, range, exaggeration]);
+  }, [dataset, field, variable, range, exaggeration, edge]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
     <mesh geometry={geometry}>

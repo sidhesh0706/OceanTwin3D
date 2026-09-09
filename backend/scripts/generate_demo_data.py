@@ -27,7 +27,7 @@ def generate():
     DATA.mkdir(parents=True, exist_ok=True)
 
     latitude = np.linspace(-75.0, 75.0, LAT_POINTS)
-    longitude = np.linspace(-177.5, 177.5, LON_POINTS)
+    longitude = np.linspace(-180.0, 180.0, LON_POINTS, endpoint=False)
     times = np.datetime64("2026-01-01T00:00") + np.arange(NTIME) * np.timedelta64(7, "D")
 
     # ── Land mask from bundled Natural Earth geometry ─────────────────────
@@ -221,30 +221,20 @@ def generate():
     time_idx = NTIME // 2  # middle timestep for profile
     sources = []
     for k, (y, x, sensor_type) in enumerate(obs_locations):
-        # Snap to nearest grid point
-        lat_idx = int(np.argmin(np.abs(latitude - y)))
-        lon_idx = int(np.argmin(np.abs(longitude - x)))
+        # Choose the nearest interior wet cell, so interpolation never relies on
+        # missing coastal neighbours. Synthetic instruments always have profiles.
+        candidates = []
+        for jj in range(1, LAT_POINTS - 1):
+            for ii in range(1, LON_POINTS - 1):
+                if wet[jj-1:jj+2, ii-1:ii+2].all():
+                    dx = ((float(longitude[ii]) - x + 180) % 360 - 180) * np.cos(np.radians(y))
+                    distance = (float(latitude[jj]) - y) ** 2 + dx ** 2
+                    candidates.append((distance, jj, ii))
+        if not candidates:
+            raise ValueError('No interior ocean cells for synthetic observations.')
+        _, lat_idx, lon_idx = min(candidates)
         snap_lat = float(latitude[lat_idx])
         snap_lon = float(longitude[lon_idx])
-
-        # Check this is a wet point
-        if not wet[lat_idx, lon_idx]:
-            # Shift slightly
-            for dlat in range(-2, 3):
-                for dlon in range(-2, 3):
-                    jj = np.clip(lat_idx + dlat, 0, LAT_POINTS - 1)
-                    ii = np.clip(lon_idx + dlon, 0, LON_POINTS - 1)
-                    if wet[jj, ii]:
-                        snap_lat = float(latitude[jj])
-                        snap_lon = float(longitude[ii])
-                        lat_idx, lon_idx = jj, ii
-                        break
-                else:
-                    continue
-                break
-
-        if not wet[lat_idx, lon_idx]:
-            continue  # skip if still on land
 
         z_depths = DEPTHS if sensor_type == "ARGO" else DEPTHS[DEPTHS <= 1000]
         profile_ds = ds.isel(time=time_idx)

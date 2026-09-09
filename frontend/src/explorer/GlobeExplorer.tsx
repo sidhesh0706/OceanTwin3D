@@ -11,6 +11,7 @@ import { sample } from '../ocean/CurrentParticles';
 import type { CameraPreset, Dataset, Frame, Mode, Observation, Variable } from '../types';
 
 interface Props {
+  showField: boolean;
   enabled: boolean;
   dataset: Dataset;
   frame: Frame;
@@ -87,10 +88,7 @@ export default function GlobeExplorer(props: Props) {
 
   // Domain-aware LOD: the renderer adapts to ANY dataset domain.
   // Global datasets (>180° span) show layers from farther away than regional.
-  const domainWidth = Math.abs(
-    props.dataset.bounds.longitude[1] - props.dataset.bounds.longitude[0],
-  );
-  const isGlobalScale = domainWidth >= 120;
+  const isGlobalScale = props.dataset.global;
   // Domain outline: shown only for regional datasets at mid-zoom.
   // Global datasets never show a domain outline (the whole ocean is the domain).
   const showOutline = !isGlobalScale && camHeight < GLOBAL_KM && camHeight >= REGIONAL_KM;
@@ -109,6 +107,7 @@ export default function GlobeExplorer(props: Props) {
           animation: false,
           timeline: false,
           baseLayerPicker: false,
+          baseLayer: false,
           geocoder: false,
           homeButton: false,
           sceneModePicker: false,
@@ -138,7 +137,7 @@ export default function GlobeExplorer(props: Props) {
           }
         }
 
-        let baseType: 'satellite' | 'osm' | 'offline' = 'offline';
+        let baseType: 'satellite' | 'blue-marble' | 'osm' | 'offline' = 'offline';
 
         try {
           viewer.imageryLayers.removeAll(false);
@@ -162,17 +161,31 @@ export default function GlobeExplorer(props: Props) {
               /* Try next. */
             }
           }
-          if (!attached) { /* Fall through to Tier 2. */ }
+          if (!attached) {
+            /* Fall through to Tier 2. */
+          }
         }
 
-        // Tier 2 — OpenStreetMap
-        if (baseType === 'offline' && Cesium.UrlTemplateImageryProvider) {
+        // Locally bundled NASA imagery keeps the presentation independent of tile services.
+        if (baseType === 'offline' && Cesium.SingleTileImageryProvider?.fromUrl) {
           try {
-            const osm = new Cesium.UrlTemplateImageryProvider({
-              url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              minimumLevel: 0,
-              maximumLevel: 18,
+            const earth = await Cesium.SingleTileImageryProvider.fromUrl('/earth-blue-marble.jpg', {
+              credit: 'NASA Earth Observatory · Reto Stöckli · Blue Marble (January 2004)',
             });
+            if (cancelled) return;
+            viewer.imageryLayers.addImageryProvider(earth);
+            baseType = 'blue-marble';
+          } catch {
+            /* Fall back to bundled Natural Earth tiles. */
+          }
+        }
+
+        // Natural Earth tile fallback
+        if (baseType === 'offline' && Cesium.TileMapServiceImageryProvider) {
+          try {
+            const osm = await Cesium.TileMapServiceImageryProvider.fromUrl(
+              '/vendor/cesium/Assets/Textures/NaturalEarthII',
+            );
             if (!cancelled) {
               viewer.imageryLayers.addImageryProvider(osm);
               gradeBaseLayer(viewer, 'osm');
@@ -197,18 +210,23 @@ export default function GlobeExplorer(props: Props) {
         }
 
         live.current.onBaseLayer?.(
-          baseType === 'satellite' ? 'satellite' : baseType === 'osm' ? 'OSM' : 'Natural Earth',
+          baseType === 'satellite'
+            ? 'satellite'
+            : baseType === 'blue-marble'
+              ? 'NASA Blue Marble (local)'
+              : 'Natural Earth (local)',
         );
 
         // ── Globe cosmetics ───────────────────────────────────────────────
         try {
           // Deep ocean blue — visible where imagery hasn't loaded.
           viewer.scene.globe.baseColor = new Cesium.Color(0.04, 0.14, 0.28, 1);
-          viewer.scene.globe.enableLighting = true;
+          viewer.scene.globe.enableLighting = false;
           if (Cesium.JulianDate) {
             viewer.clock.currentTime = Cesium.JulianDate.fromIso8601('2026-01-15T06:00:00Z');
           }
           viewer.scene.skyAtmosphere.show = true;
+          if (viewer.scene.skyBox) viewer.scene.skyBox.show = false;
         } catch {
           /* Cosmetic only. */
         }
@@ -248,13 +266,21 @@ export default function GlobeExplorer(props: Props) {
             };
             cam.changed?.addEventListener(onChanged);
             layers.current.changedCleanup = () => {
-              try { cam.changed?.removeEventListener(onChanged); } catch { /* Best-effort. */ }
+              try {
+                cam.changed?.removeEventListener(onChanged);
+              } catch {
+                /* Best-effort. */
+              }
             };
           } catch {
             layers.current.changedCleanup = null;
           }
           layers.current.moveEndCleanup = () => {
-            try { viewer!.camera.moveEnd.removeEventListener(updateHeight); } catch { /* Best-effort. */ }
+            try {
+              viewer!.camera.moveEnd.removeEventListener(updateHeight);
+            } catch {
+              /* Best-effort. */
+            }
           };
         } catch {
           /* LOD falls back to stale values. */
@@ -346,19 +372,47 @@ export default function GlobeExplorer(props: Props) {
       const v = viewerRef.current;
       const L = layers.current;
       viewerRef.current = null;
-      try { L.moveEndCleanup?.(); } catch { /* Best-effort. */ }
+      try {
+        L.moveEndCleanup?.();
+      } catch {
+        /* Best-effort. */
+      }
       L.moveEndCleanup = null;
-      try { L.changedCleanup?.(); } catch { /* Best-effort. */ }
+      try {
+        L.changedCleanup?.();
+      } catch {
+        /* Best-effort. */
+      }
       L.changedCleanup = null;
       if (L.currentAnim !== null) {
-        try { cancelAnimationFrame(L.currentAnim); } catch { /* Best-effort. */ }
+        try {
+          cancelAnimationFrame(L.currentAnim);
+        } catch {
+          /* Best-effort. */
+        }
         L.currentAnim = null;
       }
-      try { L.handler?.destroy(); } catch { /* Best-effort. */ }
+      try {
+        L.handler?.destroy();
+      } catch {
+        /* Best-effort. */
+      }
       if (v && !v.isDestroyed()) {
-        try { if (L.oceanImagery) v.imageryLayers.remove(L.oceanImagery, true); } catch { /* Best-effort. */ }
-        try { if (L.obs) v.dataSources.remove(L.obs); } catch { /* Best-effort. */ }
-        try { v.destroy(); } catch { /* Best-effort. */ }
+        try {
+          if (L.oceanImagery) v.imageryLayers.remove(L.oceanImagery, true);
+        } catch {
+          /* Best-effort. */
+        }
+        try {
+          if (L.obs) v.dataSources.remove(L.obs);
+        } catch {
+          /* Best-effort. */
+        }
+        try {
+          v.destroy();
+        } catch {
+          /* Best-effort. */
+        }
       }
       L.oceanImagery = null;
       L.slice = null;
@@ -414,14 +468,28 @@ export default function GlobeExplorer(props: Props) {
     const Cesium = getCesium();
     const L = layers.current;
     if (L.slice) {
-      try { v?.entities.remove(L.slice); } catch { /* Best-effort. */ }
+      try {
+        v?.entities.remove(L.slice);
+      } catch {
+        /* Best-effort. */
+      }
       L.slice = null;
     }
     if (L.oceanImagery) {
-      try { v?.imageryLayers.remove(L.oceanImagery, true); } catch { /* Best-effort. */ }
+      try {
+        v?.imageryLayers.remove(L.oceanImagery, true);
+      } catch {
+        /* Best-effort. */
+      }
       L.oceanImagery = null;
     }
-    if (!v || !Cesium || !globeReady || (mode !== 'slice' && mode !== 'currents'))
+    if (
+      !v ||
+      !Cesium ||
+      !globeReady ||
+      !props.showField ||
+      (mode !== 'slice' && mode !== 'currents')
+    )
       return;
     try {
       const slice = frame.slice;
@@ -430,7 +498,7 @@ export default function GlobeExplorer(props: Props) {
       const nz = slice.latitudes.length;
       if (!nx || !nz || !Cesium.SingleTileImageryProvider) return;
 
-      const isGlobal = (props.dataset.global ?? false) || domainWidth >= 120;
+      const isGlobal = props.dataset.global;
       const W = isGlobal ? 1024 : 512;
       const H = isGlobal ? 512 : 256;
       const canvas = document.createElement('canvas');
@@ -447,6 +515,8 @@ export default function GlobeExplorer(props: Props) {
         });
       } else {
         paintContinuousField(canvas, rows, {
+          latitudes: slice.latitudes,
+          longitudes: slice.longitudes,
           variable,
           min,
           max,
@@ -470,12 +540,12 @@ export default function GlobeExplorer(props: Props) {
       });
 
       const layer = v.imageryLayers.addImageryProvider(provider) as { alpha?: number } | undefined;
-      if (layer) layer.alpha = opacity;
+      if (layer) layer.alpha = 1;
       L.oceanImagery = layer;
     } catch {
       /* A bad frame must not break the globe. */
     }
-  }, [frame, variable, mode, range, opacity, globeReady]);
+  }, [frame, variable, mode, range, opacity, globeReady, props.showField]);
 
   // ── Domain outline (Regional datasets only, never global) ──────────────
   useEffect(() => {
@@ -483,10 +553,14 @@ export default function GlobeExplorer(props: Props) {
     const Cesium = getCesium();
     const L = layers.current;
     if (L.outline) {
-      try { v?.entities.remove(L.outline); } catch { /* Best-effort. */ }
+      try {
+        v?.entities.remove(L.outline);
+      } catch {
+        /* Best-effort. */
+      }
       L.outline = null;
     }
-    const isGlobal = (props.dataset.global ?? false) || domainWidth >= 120;
+    const isGlobal = props.dataset.global;
     if (isGlobal || !v || !Cesium || !globeReady || !Cesium.Rectangle || !showOutline) return;
     try {
       const slice = frame.slice;
@@ -518,13 +592,21 @@ export default function GlobeExplorer(props: Props) {
     const L = layers.current;
     const Cesium = getCesium();
     const v = viewerRef.current;
-    try { L.points?.removeAll(); } catch { /* Best-effort. */ }
+    try {
+      L.points?.removeAll();
+    } catch {
+      /* Best-effort. */
+    }
     for (const e of L.volumeSlices) {
-      try { v?.entities.remove(e); } catch { /* Best-effort. */ }
+      try {
+        v?.entities.remove(e);
+      } catch {
+        /* Best-effort. */
+      }
     }
     L.volumeSlices = [];
     if (!v || !Cesium || !L.points || !globeReady) return;
-    if (mode !== 'volume' && mode !== 'iso') return;
+    if (!props.showField || (mode !== 'volume' && mode !== 'iso')) return;
 
     try {
       const volume = frame.volume;
@@ -538,7 +620,7 @@ export default function GlobeExplorer(props: Props) {
       const color = new Color();
       const [min, max] = range;
       const isoOn = mode === 'iso';
-      const isGlobal = (props.dataset.global ?? false) || domainWidth >= 120;
+      const isGlobal = props.dataset.global;
       const VW = isGlobal ? 512 : 256;
       const VH = isGlobal ? 256 : 128;
       const rect = isGlobal
@@ -551,7 +633,7 @@ export default function GlobeExplorer(props: Props) {
           );
 
       // Clean representative depth levels (subsurface, thermocline, intermediate, deep)
-      const targetIndices = [1, 3, 6, Math.min(8, layers3.length - 1)];
+      const targetIndices = layers3.map((_, k) => k);
 
       targetIndices.forEach((k) => {
         if (k >= layers3.length) return;
@@ -574,6 +656,8 @@ export default function GlobeExplorer(props: Props) {
             });
           } else {
             paintContinuousField(canvas, layer, {
+              latitudes: volume.latitudes,
+              longitudes: volume.longitudes,
               variable,
               min,
               max,
@@ -598,7 +682,7 @@ export default function GlobeExplorer(props: Props) {
       });
 
       // Spatial point sampling for close volumetric inspection (capped at 1,500 points)
-      const stride = isGlobal ? 3 : 2;
+      const stride = Math.max(1, Math.ceil(Math.sqrt((nx * nz * targetIndices.length) / 1400)));
       let ptCount = 0;
       const maxPts = 1500;
       for (const k of targetIndices) {
@@ -626,16 +710,7 @@ export default function GlobeExplorer(props: Props) {
     } catch {
       /* A bad frame must not break the globe. */
     }
-  }, [
-    frame,
-    variable,
-    mode,
-    range,
-    opacity,
-    exaggeration,
-    threshold,
-    globeReady,
-  ]);
+  }, [frame, variable, mode, range, opacity, exaggeration, threshold, globeReady, props.showField]);
 
   // ── Current field ──────────────────────────────────────────────────────
   // Direction, magnitude and distribution are backend u/v only — no fake particles.
@@ -643,10 +718,22 @@ export default function GlobeExplorer(props: Props) {
   useEffect(() => {
     const L = layers.current;
     const Cesium = getCesium();
-    try { L.lines?.removeAll(); } catch { /* Best-effort. */ }
-    try { L.currentPts?.removeAll(); } catch { /* Best-effort. */ }
+    try {
+      L.lines?.removeAll();
+    } catch {
+      /* Best-effort. */
+    }
+    try {
+      L.currentPts?.removeAll();
+    } catch {
+      /* Best-effort. */
+    }
     if (L.currentAnim !== null) {
-      try { cancelAnimationFrame(L.currentAnim); } catch { /* Best-effort. */ }
+      try {
+        cancelAnimationFrame(L.currentAnim);
+      } catch {
+        /* Best-effort. */
+      }
       L.currentAnim = null;
     }
     if (!viewerRef.current || !Cesium || !L.lines || !L.currentPts || !globeReady) return;
@@ -654,7 +741,8 @@ export default function GlobeExplorer(props: Props) {
 
     try {
       const field = frame.currents;
-      const h = depthHeight(field.depth, exaggeration) + 2000;
+      // Slice maps drape the selected-depth data on the surface for geographic reading.
+      const h = 4000;
       const step = density >= 2200 ? 3 : density >= 1200 ? 4 : 5;
       const cap = Math.min(600, Math.max(150, density));
       let drawn = 0;
@@ -759,7 +847,11 @@ export default function GlobeExplorer(props: Props) {
     }
     return () => {
       if (L.currentAnim !== null) {
-        try { cancelAnimationFrame(L.currentAnim); } catch { /* Best-effort. */ }
+        try {
+          cancelAnimationFrame(L.currentAnim);
+        } catch {
+          /* Best-effort. */
+        }
         L.currentAnim = null;
       }
     };
@@ -788,7 +880,11 @@ export default function GlobeExplorer(props: Props) {
     const L = layers.current;
     const Cesium = getCesium();
     for (const id of L.guides) {
-      try { L.obs?.entities.removeById(id); } catch { /* Best-effort. */ }
+      try {
+        L.obs?.entities.removeById(id);
+      } catch {
+        /* Best-effort. */
+      }
     }
     L.guides = [];
     const v = viewerRef.current;
@@ -833,16 +929,16 @@ export default function GlobeExplorer(props: Props) {
   useEffect(() => {
     const v = viewerRef.current;
     if (!v || !globeReady) return;
-    const diving = mode === 'volume' || mode === 'iso';
+    const diving = props.showField && (mode === 'volume' || mode === 'iso');
     try {
       v.scene.globe.translucency.enabled = diving;
-      v.scene.globe.translucency.frontFaceAlpha = diving ? 0.82 : 1.0;
+      v.scene.globe.translucency.frontFaceAlpha = diving ? 0.15 : 1.0;
       v.scene.globe.translucency.backFaceAlpha = 0.0; // NEVER show back side of globe
       v.scene.globe.depthTestAgainstTerrain = !diving;
     } catch {
       /* Older builds keep an opaque globe; layers still render. */
     }
-  }, [mode, globeReady]);
+  }, [mode, globeReady, props.showField]);
 
   if (!enabled) return null;
   if (failed)
@@ -899,11 +995,11 @@ function gradeBaseLayer(viewer: CesiumViewer, type: 'satellite' | 'osm') {
       layer['contrast'] = 1.0;
       layer['gamma'] = 1.0;
     } else {
-      layer['brightness'] = 0.55;
-      layer['saturation'] = 0.25;
-      layer['contrast'] = 1.1;
-      layer['gamma'] = 0.85;
-      layer['hue'] = 0.6;
+      layer['brightness'] = 1.05;
+      layer['saturation'] = 1.15;
+      layer['contrast'] = 1.05;
+      layer['gamma'] = 1.0;
+      layer['hue'] = 0;
     }
   } catch {
     /* Raw imagery remains. */
@@ -1058,7 +1154,11 @@ function flyToPreset(
     };
   }
 
-  try { v.camera.cancelFlight(); } catch { /* No flight in progress. */ }
+  try {
+    v.camera.cancelFlight();
+  } catch {
+    /* No flight in progress. */
+  }
   try {
     v.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(flight.lon, flight.lat, flight.h),
@@ -1067,7 +1167,17 @@ function flyToPreset(
         pitch: Cesium.Math.toRadians(flight.pitch),
         roll: 0,
       },
-      duration: ['global', 'approach', 'pacific', 'atlantic', 'indian', 'southern', 'arctic'].includes(p.preset) ? 2.8 : 2.4,
+      duration: [
+        'global',
+        'approach',
+        'pacific',
+        'atlantic',
+        'indian',
+        'southern',
+        'arctic',
+      ].includes(p.preset)
+        ? 2.8
+        : 2.4,
     });
   } catch {
     /* A failed flight must not break the explorer. */

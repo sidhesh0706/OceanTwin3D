@@ -3,6 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
+import xarray as xr
 
 from backend.app.adapters.netcdf import NetCDFDatasetAdapter, clean
 from backend.app.models import ObservationSource
@@ -38,7 +39,8 @@ class OceanService:
             raise ValueError("This instrument has no current-speed profile.")
         arr = ds[variable].isel(time=time_index)
         # Linear horizontal + vertical collocation. No extrapolation or filling across land.
-        column = arr.interp(latitude=obs["latitude"], longitude=obs["longitude"])
+        longitude = self.adapter.position(obs["latitude"], obs["longitude"])
+        column = self.adapter.periodic(arr).interp(latitude=obs["latitude"], longitude=longitude)
         rows = []
         errors = []
         for p in obs["profiles"]:
@@ -90,13 +92,8 @@ class OceanService:
         adapter = self.adapter
         ds = adapter.ds
         adapter.validate(adapter.variables[0], time)
-        if not float(ds.latitude.min()) <= latitude <= float(ds.latitude.max()):
-            raise ValueError("Latitude is outside the dataset domain.")
-        # Normalise longitude to dataset range
-        lon_norm = ((longitude + 180) % 360) - 180
-        if not float(ds.longitude.min()) <= lon_norm <= float(ds.longitude.max()):
-            raise ValueError("Longitude is outside the dataset domain.")
-        arr = ds.isel(time=time).interp(latitude=latitude, longitude=lon_norm)
+        lon_norm = adapter.position(latitude, longitude)
+        arr = adapter.periodic(ds.isel(time=time)).interp(latitude=latitude, longitude=lon_norm)
         depths = ds.depth.values.tolist()
         result = []
         for i, z in enumerate(depths):
@@ -131,23 +128,29 @@ class OceanService:
         adapter = self.adapter
         adapter.validate(variable, time)
         npoints = max(2, min(npoints, 200))
-        lats = np.linspace(lat1, lat2, npoints)
-        lons = np.linspace(lon1, lon2, npoints)
-        # Clamp to domain
+        lon1 = adapter.position(lat1, lon1)
+        lon2 = adapter.position(lat2, lon2)
+        def unit_vector(lat, lon):
+            lat, lon = np.radians([lat, lon])
+            return np.array([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)])
+        start, end = unit_vector(lat1, lon1), unit_vector(lat2, lon2)
+        angle = np.arccos(np.clip(np.dot(start, end), -1, 1))
+        if angle < 1e-8 or np.pi - angle < 1e-8:
+            raise ValueError("Choose two distinct, non-antipodal transect endpoints.")
+        fraction = np.linspace(0, 1, npoints)
+        xyz = (np.sin((1 - fraction) * angle)[:, None] * start + np.sin(fraction * angle)[:, None] * end) / np.sin(angle)
+        lats = np.degrees(np.arctan2(xyz[:, 2], np.hypot(xyz[:, 0], xyz[:, 1])))
+        lons = np.degrees(np.arctan2(xyz[:, 1], xyz[:, 0]))
+        # Validate the entire arc; never silently move a requested sample.
+        for lat, lon in zip(lats, lons):
+            adapter.position(float(lat), float(lon))
         ds = adapter.ds
-        lats = np.clip(lats, float(ds.latitude.min()), float(ds.latitude.max()))
-        lons = np.clip(lons, float(ds.longitude.min()), float(ds.longitude.max()))
-        arr_depth = adapter.at_depth(ds[variable].isel(time=time), depth)
-        # Compute cumulative distance along transect (km)
-        R = 6371.0
-        dlat = np.radians(np.diff(lats))
-        dlon = np.radians(np.diff(lons))
-        lat_mid = np.radians((lats[:-1] + lats[1:]) / 2)
-        dx = np.sqrt((R * dlat) ** 2 + (R * np.cos(lat_mid) * dlon) ** 2)
-        dist = np.concatenate([[0.0], np.cumsum(dx)])
+        arr_depth = adapter.periodic(adapter.at_depth(ds[variable].isel(time=time), depth))
+        dist = fraction * angle * 6371.0
+        sampled = arr_depth.interp(latitude=xr.DataArray(lats, dims="point"), longitude=xr.DataArray(lons, dims="point")).values
         points = []
         for i in range(npoints):
-            val = float(arr_depth.interp(latitude=lats[i], longitude=lons[i]))
+            val = float(sampled[i])
             points.append({
                 "distance_km": round(float(dist[i]), 2),
                 "latitude": round(float(lats[i]), 4),
@@ -178,6 +181,13 @@ class OceanService:
         adapter = self.adapter
         adapter.validate(variable, time)
         ds = adapter.ds
+        if not all(np.isfinite(v) for v in (lat_min, lat_max, lon_min, lon_max)):
+            raise ValueError("Region bounds must be finite.")
+        if not float(ds.latitude.min()) <= lat_min < lat_max <= float(ds.latitude.max()):
+            raise ValueError("Region latitude bounds must increase inside the dataset domain.")
+        west, east = (-180, 180) if adapter.is_global else (float(ds.longitude.min()), float(ds.longitude.max()))
+        if not west <= lon_min < lon_max <= east:
+            raise ValueError("Region longitude bounds must increase inside the domain; split regions at the dateline.")
         arr_depth = adapter.at_depth(ds[variable].isel(time=time), depth)
         region = arr_depth.sel(
             latitude=slice(lat_min, lat_max),
@@ -195,6 +205,7 @@ class OceanService:
             "timestamp": adapter.times()[time],
             "bounds": {"lat": [lat_min, lat_max], "lon": [lon_min, lon_max]},
             "wet_cells": int(finite.size),
+            "method": "Unweighted statistics of finite grid cells; population standard deviation. Not an area-weighted mean.",
             "total_cells": int(vals.size),
             "mean": round(float(finite.mean()), 5),
             "std": round(float(finite.std()), 5),

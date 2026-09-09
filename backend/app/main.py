@@ -140,14 +140,9 @@ def inspect(
     def extract():
         adapter = get_service().adapter
         adapter.validate(adapter.variables[0], time)
-        if not float(adapter.ds.latitude.min()) <= latitude <= float(
-            adapter.ds.latitude.max()
-        ) or not float(adapter.ds.longitude.min()) <= longitude <= float(
-            adapter.ds.longitude.max()
-        ):
-            raise ValueError("Position is outside the model domain.")
-        arr = adapter.at_depth(adapter.ds.isel(time=time), depth).interp(
-            latitude=latitude, longitude=longitude
+        lon = adapter.position(latitude, longitude)
+        arr = adapter.periodic(adapter.at_depth(adapter.ds.isel(time=time), depth)).interp(
+            latitude=latitude, longitude=lon
         )
         return {
             "latitude": latitude,
@@ -167,6 +162,12 @@ def ocean_profile(
 ):
     """Full depth profile for all variables at a geographic point."""
     return safe(lambda: get_service().profile(latitude, longitude, time))
+
+
+@app.get('/api/ocean/region')
+def ocean_region(latitude: float, longitude: float, variable: str = 'temperature', time: int = Query(0, ge=0), depth: float = Query(0, ge=0)):
+    from backend.app.services.region import regional_view
+    return safe(lambda: regional_view(get_service(), latitude, longitude, variable, time, depth))
 
 
 @app.get("/api/ocean/transect")

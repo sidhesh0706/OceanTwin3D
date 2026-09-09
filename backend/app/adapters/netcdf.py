@@ -90,8 +90,14 @@ class NetCDFDatasetAdapter:
                 ds = ds.sortby(coord)
             if float(ds.latitude.min()) < -90 or float(ds.latitude.max()) > 90:
                 raise ValueError("Latitude is outside -90 to 90 degrees.")
-            # NOTE: No domain-width restriction. Global and dateline-crossing
-            # datasets are fully supported once longitude is normalised above.
+            gaps = np.diff(ds.longitude.values)
+            typical_gap = float(np.median(gaps))
+            self.is_global = (
+                float(ds.longitude.max() - ds.longitude.min()) + typical_gap >= 359.9
+                and float(gaps.max()) <= typical_gap * 2.01
+            )
+            if float(gaps.max()) > 180:
+                raise ValueError("Regional grids split by the dateline need preprocessing; global periodic grids are supported.")
             variables = {}
             for canonical, candidates in ALIASES.items():
                 name = next((n for n in candidates if n in ds.data_vars), None)
@@ -197,6 +203,24 @@ class NetCDFDatasetAdapter:
             return arr.sel(depth=depth)
         return arr.interp(depth=depth)
 
+    def position(self, latitude, longitude):
+        if not math.isfinite(latitude) or not math.isfinite(longitude):
+            raise ValueError("Position must contain finite coordinates.")
+        longitude = (longitude + 180) % 360 - 180
+        if not float(self.ds.latitude.min()) <= latitude <= float(self.ds.latitude.max()):
+            raise ValueError("Latitude is outside the dataset domain.")
+        if not self.is_global and not float(self.ds.longitude.min()) <= longitude <= float(self.ds.longitude.max()):
+            raise ValueError("Longitude is outside the dataset domain.")
+        return longitude
+
+    def periodic(self, arr):
+        """Extend only a complete global grid across its physical longitude seam."""
+        if not self.is_global:
+            return arr
+        west = arr.isel(longitude=[-1]).assign_coords(longitude=[float(arr.longitude[-1]) - 360])
+        east = arr.isel(longitude=[0]).assign_coords(longitude=[float(arr.longitude[0]) + 360])
+        return xr.concat([west, arr, east], dim="longitude")
+
     @staticmethod
     def downsample(arr, cap=73, depth_cap=32):
         index = {}
@@ -220,7 +244,7 @@ class NetCDFDatasetAdapter:
         # has enough density to reveal ocean basin structure without the
         # rectangular appearance of the old low-res grid.
         lon_span = float(self.ds.longitude.max() - self.ds.longitude.min())
-        is_global = lon_span > 180
+        is_global = self.is_global
         cap = (80 if is_global else 57) if depth is None else (100 if is_global else 73)
         arr = self.downsample(arr, cap=cap)
         finite = arr.values[np.isfinite(arr.values)]
@@ -261,7 +285,7 @@ class NetCDFDatasetAdapter:
             "id": str(self.ds.attrs.get("dataset_id", self.path.stem)),
             "name": str(self.ds.attrs.get("title", self.path.stem)),
             "synthetic": str(self.ds.attrs.get("synthetic", "false")).lower() == "true",
-            "global": lon_span > 180,
+            "global": self.is_global,
             "grid": dict(self.ds.sizes),
             "bounds": {
                 c: [float(self.ds[c].min()), float(self.ds[c].max())]
