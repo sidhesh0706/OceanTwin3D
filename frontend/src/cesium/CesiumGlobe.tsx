@@ -26,6 +26,7 @@ export default function CesiumGlobe({ onViewer, onFailure }: Props) {
           animation: false,
           timeline: false,
           baseLayerPicker: false,
+          baseLayer: false,
           geocoder: false,
           homeButton: false,
           sceneModePicker: false,

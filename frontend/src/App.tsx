@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Maximize, Minimize, X, CircleHelp, Search, Waves } from 'lucide-react';
+import { Maximize, Minimize, X, CircleHelp, Waves } from 'lucide-react';
+import { SpatialAnalysis, type AnalysisKind } from './components/SpatialAnalysis';
 import type {
   CameraPreset,
   Dataset,
@@ -67,7 +68,9 @@ export default function App({
   const [help, setHelp] = useState(false);
   const [tour, setTour] = useState(-1);
   const [baseName, setBaseName] = useState('');
-  const [preset, setPreset] = useState<CameraPreset>('global');
+  const [preset, setPreset] = useState<CameraPreset>('indian');
+  const [analysis, setAnalysis] = useState<AnalysisKind | null>(null);
+  const [analysisPick, setAnalysisPick] = useState<{ lat: number; lon: number } | null>(null);
   const [cameraKey, setCameraKey] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [isFull, setIsFull] = useState(false);
@@ -116,6 +119,8 @@ export default function App({
       volumeKeyRef.current = '';
       setFrame(null);
       setSelected(null);
+      setAnalysis(null);
+      setPreset(d.global ? 'indian' : 'domain');
       setInspection(null);
       setPlaying(false);
       setMode('slice');
@@ -224,6 +229,7 @@ export default function App({
         setPlaying((v) => !v);
       }
       if (e.key === 'Escape') {
+        setAnalysis(null);
         setHelp(false);
         setTour(-1);
         setPresentation(false);
@@ -242,6 +248,10 @@ export default function App({
 
   async function inspect(lat: number, lon: number) {
     if (!frame) return;
+    if (analysis) {
+      setAnalysisPick({ lat, lon });
+      return;
+    }
     inspectionRequest.current?.abort();
     const controller = new AbortController();
     inspectionRequest.current = controller;
@@ -300,20 +310,23 @@ export default function App({
     if (m === 'currents') setCurrents(true);
   }
   function camera(p: CameraPreset) {
+    if (p.startsWith('dive-')) {
+      setDepth(Number(p.replace('dive-', '').replace('m', '')));
+      setMode('slice');
+    }
+    if (p === 'underwater') setMode('volume');
     setPreset(p);
     setCameraKey((v) => v + 1);
   }
 
-  // Stub analysis handlers — these open the inspector or start a mode.
-  function openTransect() {
-    chooseMode('currents'); // switch to a mode that enables clicking
-  }
-  function openRegionStats() {
-    setHelp(false);
-  }
-  function openProfile() {
-    // Profile probe: user clicks the ocean; handled by onInspect already.
+  function openAnalysis(kind: AnalysisKind) {
+    setPlaying(false);
+    setTour(-1);
+    setSelected(null);
+    setInspection(null);
+    setAnalysisPick(null);
     chooseMode('slice');
+    setAnalysis(kind);
   }
 
   // ── Tour ──────────────────────────────────────────────────────────────
@@ -326,7 +339,7 @@ export default function App({
         setDepth(0);
         setMode('slice');
         setTime(0);
-        camera('global');
+        camera(dataset.global ? 'indian' : 'domain');
         setSelected(null);
         break;
       case 1:
@@ -341,7 +354,13 @@ export default function App({
         break;
       case 4:
         setArgo(true);
-        setSelected(observations[0] ?? null);
+        setSelected(
+          observations.find(
+            (o) => o.longitude > 50 && o.longitude < 90 && Math.abs(o.latitude) < 25,
+          ) ??
+            observations[0] ??
+            null,
+        );
         setCompare(true);
         break;
       default:
@@ -351,7 +370,6 @@ export default function App({
     const timer = window.setTimeout(() => setTour((v) => v + 1), 5500);
     return () => window.clearTimeout(timer);
   }, [tour, dataset, observations]);
-
 
   // ── Landing handoff ───────────────────────────────────────────────────
   useEffect(() => {
@@ -457,7 +475,14 @@ export default function App({
             onClick={() => {
               setArgo(true);
               setGliders(true);
-              select(null);
+              setAnalysis(null);
+              select(
+                observations.find(
+                  (o) => o.longitude > 50 && o.longitude < 90 && Math.abs(o.latitude) < 25,
+                ) ??
+                  observations[0] ??
+                  null,
+              );
             }}
           >
             OBSERVATIONS
@@ -523,21 +548,6 @@ export default function App({
         </div>
       )}
 
-      {/* ── Search bar (top-right of globe, decorative) ──────────────── */}
-      {!presentation && (
-        <div className="search-bar-wrap">
-          <Search size={13} className="search-icon" />
-          <input
-            type="text"
-            className="search-bar"
-            placeholder="Search location..."
-            aria-label="Search location"
-            readOnly
-            title="Geographic search not yet implemented"
-          />
-        </div>
-      )}
-
       {/* ── Left tool rail ────────────────────────────────────────────── */}
       {!presentation && (
         <ToolRail
@@ -571,9 +581,9 @@ export default function App({
           onUpload={() => fileInput.current?.click()}
           onDemo={() => void restore()}
           uploading={uploading}
-          onTransect={openTransect}
-          onRegionStats={openRegionStats}
-          onProfile={openProfile}
+          onTransect={() => openAnalysis('transect')}
+          onRegionStats={() => openAnalysis('stats')}
+          onProfile={() => openAnalysis('profile')}
         />
       )}
 
@@ -594,10 +604,21 @@ export default function App({
           gliders={gliders}
           busy={busy}
           baseName={baseName}
+          onSelect={select}
         />
       )}
 
       {/* ── Observation / point inspector (floating) ───────────────────── */}
+      {analysis && (
+        <SpatialAnalysis
+          key={`${analysis}-${revision}`}
+          kind={analysis}
+          dataset={dataset}
+          field={frame.slice}
+          picked={analysisPick}
+          onClose={() => setAnalysis(null)}
+        />
+      )}
       {(selected || inspection) && (
         <Inspector
           dataset={dataset}
@@ -667,6 +688,9 @@ export default function App({
       {/* ── Scene attribution ─────────────────────────────────────────── */}
       <div className="scene-attribution">
         Cesium · WGS84{baseName ? ` · ${baseName}` : ''}
+        {mode === 'volume' || mode === 'iso'
+          ? ` · Depth scale ${exaggeration * 100}× (schematic)`
+          : ' · Selected-depth map'}
         {currents ? ' · Streamlines follow model u/v' : ''}
       </div>
 

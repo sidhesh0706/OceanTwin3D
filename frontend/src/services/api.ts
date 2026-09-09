@@ -50,10 +50,9 @@ export const api = {
       { signal },
     ),
   profile: (lat: number, lon: number, time: number, signal: AbortSignal) =>
-    request<ProfileResult>(
-      `/api/ocean/profile?latitude=${lat}&longitude=${lon}&time=${time}`,
-      { signal },
-    ),
+    request<ProfileResult>(`/api/ocean/profile?latitude=${lat}&longitude=${lon}&time=${time}`, {
+      signal,
+    }),
   transect: (
     lat1: number,
     lon1: number,

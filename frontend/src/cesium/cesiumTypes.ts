@@ -146,6 +146,7 @@ export interface CesiumStatic {
     ColorType: unknown;
   };
   UrlTemplateImageryProvider?: new (options: Record<string, unknown>) => unknown;
+  TileMapServiceImageryProvider?: { fromUrl(url: string): Promise<unknown> };
   SingleTileImageryProvider?: new (options: Record<string, unknown>) => unknown;
   Rectangle: { fromDegrees(west: number, south: number, east: number, north: number): unknown };
   CustomDataSource?: new (name: string) => CesiumDataSourceHandle;

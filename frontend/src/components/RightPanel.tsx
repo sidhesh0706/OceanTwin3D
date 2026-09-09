@@ -19,6 +19,7 @@ interface Props {
   gliders: boolean;
   busy: boolean;
   baseName: string;
+  onSelect: (o: Observation) => void;
 }
 
 const VAR_COLORS: Record<string, string> = {
@@ -43,12 +44,15 @@ export function RightPanel({
   gliders,
   busy,
   baseName,
+  onSelect,
 }: Props) {
   const [obsOpen, setObsOpen] = useState(false);
   const meta = dataset.variables.find((v) => v.id === variable)!;
   const argoCount = observations.filter((o) => o.instrument_type === 'ARGO' && argo).length;
   const gliderCount = observations.filter((o) => o.instrument_type === 'GLIDER' && gliders).length;
-  const otherCount = observations.filter((o) => !['ARGO', 'GLIDER'].includes(o.instrument_type) && (argo || gliders)).length;
+  const otherCount = observations.filter(
+    (o) => !['ARGO', 'GLIDER'].includes(o.instrument_type) && (argo || gliders),
+  ).length;
 
   // Domain label
   const [latS, latN] = dataset.bounds.latitude;
@@ -106,7 +110,7 @@ export function RightPanel({
             aria-label="Depth slice mode"
           >
             <Globe size={13} />
-            <span>Surface</span>
+            <span>Depth slice</span>
           </button>
           <button
             className={mode === 'volume' ? 'active' : ''}
@@ -184,12 +188,33 @@ export function RightPanel({
             </div>
           )}
         </div>
+        {obsOpen && (
+          <div className="rp-sensor-list">
+            {observations
+              .filter((o) => (o.instrument_type === 'ARGO' ? argo : gliders))
+              .map((o) => (
+                <button key={o.id} onClick={() => onSelect(o)}>
+                  {o.id}
+                  <small>
+                    {o.instrument_type} · {o.max_depth} m
+                  </small>
+                </button>
+              ))}
+            {!observations.length && <p>No observations attached to this model.</p>}
+          </div>
+        )}
       </section>
 
       {/* ── Model Info Card ────────────────────────────────── */}
       <section className="rp-section rp-model-card">
         <div className="rp-model-hd">
-          <span>{dataset.synthetic ? (dataset.global ? 'Global Ocean Model · 3D Digital Twin' : 'Ocean Model · Demo Domain') : dataset.name}</span>
+          <span>
+            {dataset.synthetic
+              ? dataset.global
+                ? 'Global Ocean Model · 3D Digital Twin'
+                : 'Ocean Model · Demo Domain'
+              : dataset.name}
+          </span>
           <span className="rp-active-badge">
             <i className={busy ? 'loading' : ''} />
             {busy ? 'Updating' : 'Active'}

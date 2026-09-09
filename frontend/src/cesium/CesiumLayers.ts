@@ -51,12 +51,14 @@ export async function applyCinematicBase(
       tileset = null;
     }
   }
-  if (Cesium?.OpenStreetMapImageryProvider) {
+  if (Cesium?.TileMapServiceImageryProvider) {
     try {
-      viewer.imageryLayers.addImageryProvider(
-        new Cesium.OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/' }),
+      const provider = await Cesium.TileMapServiceImageryProvider.fromUrl(
+        '/vendor/cesium/Assets/Textures/NaturalEarthII',
       );
-      return 'osm';
+      if (viewer.isDestroyed()) return 'none';
+      viewer.imageryLayers.addImageryProvider(provider);
+      return 'osm'; // Existing cinematic state treats this as a flat imagery globe.
     } catch {
       /* Fall through to the untextured globe. */
     }
@@ -74,8 +76,8 @@ export async function applyAnalysisImagery(
   if (!Cesium?.IonImageryProvider?.fromAssetId || !token || analysisLayer) return false;
   try {
     const provider = await Cesium.IonImageryProvider.fromAssetId(ION_ASSETS.satellite2D);
-    viewer.imageryLayers.addImageryProvider(provider);
-    analysisLayer = provider;
+    if (viewer.isDestroyed()) return false;
+    analysisLayer = viewer.imageryLayers.addImageryProvider(provider);
     return true;
   } catch {
     return false;

@@ -140,14 +140,9 @@ def inspect(
     def extract():
         adapter = get_service().adapter
         adapter.validate(adapter.variables[0], time)
-        if not float(adapter.ds.latitude.min()) <= latitude <= float(
-            adapter.ds.latitude.max()
-        ) or not float(adapter.ds.longitude.min()) <= longitude <= float(
-            adapter.ds.longitude.max()
-        ):
-            raise ValueError("Position is outside the model domain.")
-        arr = adapter.at_depth(adapter.ds.isel(time=time), depth).interp(
-            latitude=latitude, longitude=longitude
+        lon = adapter.position(latitude, longitude)
+        arr = adapter.periodic(adapter.at_depth(adapter.ds.isel(time=time), depth)).interp(
+            latitude=latitude, longitude=lon
         )
         return {
             "latitude": latitude,

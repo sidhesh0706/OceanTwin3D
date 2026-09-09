@@ -35,7 +35,7 @@ export const ION_PHOTOREALISTIC_TILES = 2275207;
 // height positive up (WGS84).
 export function depthHeight(depth: number, exaggeration: number): number {
   if (depth <= 0) return 2000;
-  return 2000 - depth * 6 * exaggeration;
+  return 2000 - depth * 100 * exaggeration;
 }
 
 // Camera height that places the viewer just above a given depth slice,
@@ -56,7 +56,7 @@ export function isInDomain(longitude: number, latitude: number, dataset: Dataset
   const [west, east] = dataset.bounds.longitude;
   const lon = normalizeLongitude(longitude);
   // For global datasets (>180° span), all ocean points are in domain.
-  if (east - west > 180) return latitude >= south && latitude <= north;
+  if (dataset.global) return latitude >= south && latitude <= north;
   return lon >= west && lon <= east && latitude >= south && latitude <= north;
 }
 
@@ -98,18 +98,16 @@ export function cartesianFromLonLatDepth(
 
 // ── Ocean-basin camera presets ────────────────────────────────────────────
 // lon, lat, altitude (m), pitch (degrees from horizontal, negative = looking down)
-export const OCEAN_PRESETS: Record<
-  string,
-  { lon: number; lat: number; h: number; pitch: number }
-> = {
-  global:    { lon:    0, lat: 20, h: 20_000_000, pitch: -90 },
-  approach:  { lon:    0, lat: 20, h: 11_000_000, pitch: -75 },
-  domain:    { lon:    0, lat: 20, h:  5_500_000, pitch: -80 }, // overridden by domain center
-  surface:   { lon:    0, lat: 20, h:  1_800_000, pitch: -90 }, // overridden by domain center
-  // Ocean basin overviews
-  pacific:   { lon: 175, lat:  0, h:  9_500_000, pitch: -90 },
-  atlantic:  { lon: -30, lat: 20, h:  9_500_000, pitch: -90 },
-  indian:    { lon:  75, lat: -10, h: 7_500_000, pitch: -90 },
-  southern:  { lon:   0, lat: -65, h: 8_000_000, pitch: -75 },
-  arctic:    { lon:   0, lat:  85, h: 6_000_000, pitch: -90 },
-};
+export const OCEAN_PRESETS: Record<string, { lon: number; lat: number; h: number; pitch: number }> =
+  {
+    global: { lon: 0, lat: 20, h: 20_000_000, pitch: -90 },
+    approach: { lon: 0, lat: 20, h: 11_000_000, pitch: -75 },
+    domain: { lon: 0, lat: 20, h: 5_500_000, pitch: -80 }, // overridden by domain center
+    surface: { lon: 0, lat: 20, h: 1_800_000, pitch: -90 }, // overridden by domain center
+    // Ocean basin overviews
+    pacific: { lon: 175, lat: 0, h: 9_500_000, pitch: -90 },
+    atlantic: { lon: -30, lat: 20, h: 9_500_000, pitch: -90 },
+    indian: { lon: 75, lat: -10, h: 12_000_000, pitch: -90 },
+    southern: { lon: 0, lat: -65, h: 8_000_000, pitch: -75 },
+    arctic: { lon: 0, lat: 85, h: 6_000_000, pitch: -90 },
+  };

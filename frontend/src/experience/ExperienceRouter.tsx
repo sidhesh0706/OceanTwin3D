@@ -16,7 +16,7 @@ type Phase = ExperienceMode | 'leaving';
 
 export default function ExperienceRouter() {
   const [phase, setPhase] = useState<Phase>(() =>
-    new URLSearchParams(window.location.search).has('explore') ? 'explorer' : 'landing',
+    new URLSearchParams(window.location.search).has('intro') ? 'landing' : 'explorer',
   );
   const [seed, setSeed] = useState<ExplorerSeed>(defaultSeed);
   const entered = useRef(phase !== 'landing');

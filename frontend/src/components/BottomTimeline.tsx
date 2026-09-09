@@ -27,20 +27,18 @@ export function BottomTimeline({
 }: Props) {
   // Pick 4 evenly-spaced label indices
   const n = dataset.times.length;
-  const labelIndices = [
-    ...new Set([0, Math.floor(n / 3), Math.floor((2 * n) / 3), n - 1]),
-  ];
+  const labelIndices = [...new Set([0, Math.floor(n / 3), Math.floor((2 * n) / 3), n - 1])];
 
   return (
     <footer className="btl" aria-label="Temporal explorer">
       {/* Left: playback controls + timestamp */}
       <div className="btl-left">
-        <button
-          className="btl-play"
-          aria-label={playing ? 'Pause' : 'Play'}
-          onClick={onPlay}
-        >
-          {playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}
+        <button className="btl-play" aria-label={playing ? 'Pause' : 'Play'} onClick={onPlay}>
+          {playing ? (
+            <Pause size={17} fill="currentColor" />
+          ) : (
+            <Play size={17} fill="currentColor" />
+          )}
         </button>
         <button
           aria-label="Previous timestep"

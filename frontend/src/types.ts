@@ -45,7 +45,7 @@ export interface Field {
   longitudes: number[];
   values: (number | null)[][] | (number | null)[][][];
   range: [number | null, number | null];
-  wet_mask?: (0 | 1)[][] | null;  // 2-D boolean grid from backend: 1=ocean, 0=land
+  wet_mask?: (0 | 1)[][] | null; // 2-D boolean grid from backend: 1=ocean, 0=land
 }
 export interface Currents {
   depth: number;
