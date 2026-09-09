@@ -31,6 +31,8 @@ After frontend changes, run `npm run build` inside `frontend`. Restart the Pytho
 
 See **[docs/DEMO.md](docs/DEMO.md)** for a five-minute script, exact analysis coordinates, and recovery steps. See **[docs/VALIDATION.md](docs/VALIDATION.md)** for the validation record.
 
+See **[docs/SIH_PRESENTATION_GUIDE.md](docs/SIH_PRESENTATION_GUIDE.md)** for the complete project feature inventory, slide-ready SIH content, technical highlights, a 5–7 minute four-member presentation script, and judge Q&A.
+
 ## Features
 
 - Global globe with locally bundled NASA Blue Marble imagery, basin camera presets and geographic picking. Ocean overlays can be toggled independently of the Earth basemap.
@@ -114,7 +116,7 @@ npm run build
 
 ## Architecture and API
 
-FastAPI → OceanService → xarray/NumPy NetCDF adapter. React/TypeScript → Cesium globe and Recharts. The earlier Three.js regional renderer remains in the source tree. One Python process serves the API and production build.
+FastAPI → OceanService → xarray/NumPy NetCDF adapter. React/TypeScript → Cesium globe, Three.js regional ocean renderer and Recharts. Float selection connects the globe to the regional renderer through `/api/ocean/region`. One Python process serves the API and production build.
 
 Interactive [API documentation](http://127.0.0.1:8000/docs) lists all parameters. Principal routes: `/api/datasets`, `/api/ocean/slice`, `/api/ocean/volume`, `/api/currents`, `/api/ocean/inspect`, `/api/ocean/profile`, `/api/ocean/transect`, `/api/ocean/stats`, `/api/observations`, `/api/compare/{id}`.
 
