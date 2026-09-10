@@ -4,12 +4,12 @@
 
 1. Open the repository root in PyCharm.
 2. Select the project interpreter: `.venv/Scripts/python.exe`.
-3. Run `run.py` and open [OceanTwin](http://127.0.0.1:8000/).
+3. Run `run.py` and open [OceanTwin directly](http://127.0.0.1:8000/?explore).
 4. Confirm **System Ready**, **DEMO DATA**, and **NASA Blue Marble (local)**.
 5. Keep the laptop plugged in and use a hardware-accelerated browser. Use the browser's normal zoom. Test the projector layout before speaking.
 6. On a fresh laptop, run `python setup_project.py` while online first. Normal default operation then uses local files.
 
-The explorer opens directly. [The cinematic intro](http://127.0.0.1:8000/?intro) is optional; use the direct explorer for the live scientific walkthrough.
+The default page now opens the teammate's shorter cinematic intro. Use `/?explore` for the direct scientific walkthrough, or [the intro](http://127.0.0.1:8000/?intro) when presenting the new entry sequence. The local ocean now includes a Reset view button and screen-space depth labels.
 
 ## Five-minute walkthrough
 

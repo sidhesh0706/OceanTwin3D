@@ -36,15 +36,10 @@ interface Props {
 const FALLBACK_DEPTHS = [0, 50, 100, 250, 500, 1000, 2000];
 // Scroll-to-progress anchors for the progress rail dots.
 const SCENE_ANCHOR: Record<LandingScene, number> = {
-  orbit: 0.03,
-  earth: 0.12,
-  india: 0.24,
-  'indian-ocean': 0.36,
-  observations: 0.48,
-  surface: 0.58,
-  dive: 0.73,
-  'ocean-field': 0.875,
-  comparison: 0.94,
+  ocean: 0.05,
+  depth: 0.35,
+  time: 0.62,
+  observations: 0.8,
   explorer: 1,
 };
 
@@ -54,7 +49,7 @@ const SCENE_ANCHOR: Record<LandingScene, number> = {
 export default function OceanTwinLanding({ onEnterExplorer }: Props) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [failure, setFailure] = useState('');
-  const [scene, setScene] = useState<LandingScene>('orbit');
+  const [scene, setScene] = useState<LandingScene>('ocean');
   const [progress, setProgress] = useState(0);
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
   const [dataset, setDataset] = useState<Dataset | null>(null);
@@ -76,7 +71,7 @@ export default function OceanTwinLanding({ onEnterExplorer }: Props) {
   // only when the HUD visibly changes (scene, depth level, progress bar).
   const targetRef = useRef(0);
   const smoothRef = useRef(0);
-  const sceneRef = useRef<LandingScene>('orbit');
+  const sceneRef = useRef<LandingScene>('ocean');
   const diveRef = useRef(0);
   const barRef = useRef(0);
   const depthsRef = useRef<number[]>(FALLBACK_DEPTHS);
@@ -225,20 +220,20 @@ export default function OceanTwinLanding({ onEnterExplorer }: Props) {
     if (cameraRef.current) tuneTilesetDetail(cameraRef.current.heightForScene(scene));
 
     const order = SCENE_INDEX[scene];
-    const showObs = order >= SCENE_INDEX.observations && order <= SCENE_INDEX.comparison;
+    const showObs = order >= SCENE_INDEX.observations && order <= SCENE_INDEX.observations;
     syncObservationEntities(viewer, observations, {
       visible: showObs,
       selectedId: showObs ? selectedId : null,
     });
 
-    if (scene === 'dive') {
+    if (scene === 'depth') {
       void applyBathymetry(viewer, token.current).then((ok) => {
         if (!ok && !cancelled) restoreEllipsoidTerrain(viewer);
       });
     } else {
       restoreEllipsoidTerrain(viewer);
     }
-    if (scene === 'ocean-field' && base === 'osm') {
+    if (scene === 'time' && base === 'osm') {
       void applyAnalysisImagery(viewer, token.current);
     } else {
       removeAnalysisImagery(viewer);
@@ -252,7 +247,7 @@ export default function OceanTwinLanding({ onEnterExplorer }: Props) {
   // dataset step nearest the observation timestamp. Failures resolve to
   // the neutral COMPARISON READY placeholder — never invented numbers.
   useEffect(() => {
-    if (scene !== 'comparison' || !selected || comparison || compareState !== 'idle') return;
+    if (scene !== 'observations' || !selected || comparison || compareState !== 'idle') return;
     const controller = new AbortController();
     setCompareState('loading');
     let time = 0;
@@ -320,7 +315,7 @@ export default function OceanTwinLanding({ onEnterExplorer }: Props) {
   }, []);
 
   const tint =
-    scene === 'dive'
+    scene === 'depth'
       ? 0.22 + (0.2 * Math.max(0, depths.indexOf(diveDepth))) / Math.max(1, depths.length - 1)
       : activeDef.tint;
 

@@ -4,19 +4,9 @@ import type { Variable } from '../types';
 // the explorer is the existing scientific application and source of truth.
 export type ExperienceMode = 'landing' | 'explorer';
 
-// Cinematic landing scenes, in scroll order. The final scene hands off
-// to the explorer; it never duplicates explorer controls.
-export type LandingScene =
-  | 'orbit'
-  | 'earth'
-  | 'india'
-  | 'indian-ocean'
-  | 'observations'
-  | 'surface'
-  | 'dive'
-  | 'ocean-field'
-  | 'comparison'
-  | 'explorer';
+// Cinematic landing scenes, in scroll order (5 compact beats). The final
+// scene hands off to the explorer; it never duplicates explorer controls.
+export type LandingScene = 'ocean' | 'depth' | 'time' | 'observations' | 'explorer';
 
 // Small seed carried across the LANDING → EXPLORER transition so the
 // explorer opens on the narrative's variable/depth/time instead of

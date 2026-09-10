@@ -25,37 +25,21 @@ const KEYFRAMES: Keyframe[] = [
     view: { longitude: 60, latitude: 12, height: 28000000, heading: 0, pitch: -48, roll: 0 },
   },
   {
-    p: 0.12,
-    view: { longitude: 70, latitude: 18, height: 16000000, heading: 0, pitch: -54, roll: 0 },
+    p: 0.22,
+    view: { longitude: 72, latitude: 16, height: 9000000, heading: 0, pitch: -58, roll: 0 },
   },
   {
-    p: 0.24,
-    view: { longitude: 78, latitude: 22, height: 5500000, heading: 0, pitch: -60, roll: 0 },
-  },
-  {
-    p: 0.36,
-    view: { longitude: 73, latitude: 8, height: 3000000, heading: 0, pitch: -64, roll: 0 },
-  },
-  {
-    p: 0.48,
-    view: { longitude: 66, latitude: 12, height: 1600000, heading: 0, pitch: -70, roll: 0 },
-  },
-  {
-    p: 0.58,
+    p: 0.4,
     view: { longitude: 70, latitude: 6, height: 700000, heading: 0, pitch: -75, roll: 0 },
   },
   {
-    p: 0.62,
+    p: 0.52,
     view: { longitude: 70, latitude: 6, height: 350000, heading: 0, pitch: -82, roll: 0 },
   },
-  { p: 0.84, view: { longitude: 70, latitude: 6, height: 42000, heading: 0, pitch: -85, roll: 0 } },
+  { p: 0.72, view: { longitude: 70, latitude: 6, height: 42000, heading: 0, pitch: -85, roll: 0 } },
   {
-    p: 0.88,
+    p: 0.84,
     view: { longitude: 72, latitude: 10, height: 2200000, heading: 0, pitch: -55, roll: 0 },
-  },
-  {
-    p: 0.94,
-    view: { longitude: 70, latitude: 12, height: 2800000, heading: 0, pitch: -50, roll: 0 },
   },
   {
     p: 1.0,
@@ -63,8 +47,8 @@ const KEYFRAMES: Keyframe[] = [
   },
 ];
 
-const DIVE_START = 0.62;
-const DIVE_END = 0.84;
+const DIVE_START = 0.4;
+const DIVE_END = 0.72;
 
 function smooth(t: number) {
   return t * t * (3 - 2 * t);
@@ -92,15 +76,10 @@ export function viewForProgress(p: number): InterpolatedView {
 }
 
 export function sceneForProgress(p: number): LandingScene {
-  if (p < 0.06) return 'orbit';
-  if (p < 0.18) return 'earth';
-  if (p < 0.3) return 'india';
-  if (p < 0.42) return 'indian-ocean';
-  if (p < 0.53) return 'observations';
-  if (p < 0.6) return 'surface';
-  if (p < DIVE_END) return 'dive';
-  if (p < 0.91) return 'ocean-field';
-  if (p < 0.965) return 'comparison';
+  if (p < 0.22) return 'ocean';
+  if (p < 0.52) return 'depth';
+  if (p < 0.72) return 'time';
+  if (p < 0.88) return 'observations';
   return 'explorer';
 }
 
@@ -132,23 +111,14 @@ export class LandingCameraController {
 
   heightForScene(scene: LandingScene): number {
     switch (scene) {
-      case 'orbit':
-        return 28000000;
-      case 'earth':
+      case 'ocean':
         return 16000000;
-      case 'india':
-        return 5500000;
-      case 'indian-ocean':
-        return 3000000;
-      case 'observations':
-        return 1600000;
-      case 'surface':
-      case 'dive':
+      case 'depth':
         return 350000;
-      case 'ocean-field':
-        return 2200000;
-      case 'comparison':
-        return 2800000;
+      case 'time':
+        return 1200000;
+      case 'observations':
+        return 2400000;
       case 'explorer':
         return 6000000;
     }

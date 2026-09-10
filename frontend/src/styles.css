@@ -2176,23 +2176,24 @@ input[type='number'] {
   pointer-events: none;
 }
 .region-label {
-  font-size: 14px;
-  color: #b1c2bf;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #93a8a4;
   white-space: nowrap;
   pointer-events: none;
   text-shadow: 0 1px 5px #000;
 }
 .sea-label {
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: #eff2e5a0;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #dfe7dab0;
   white-space: nowrap;
   pointer-events: none;
   text-shadow: 0 1px 4px #243b46;
 }
 .sea-label.large {
-  font-size: 11px;
-  letter-spacing: 5px;
+  font-size: 10px;
+  letter-spacing: 4px;
 }
 .instrument-marker {
   position: relative;
@@ -2246,9 +2247,9 @@ input[type='number'] {
   position: absolute;
   left: 28px;
   top: 1px;
-  font-size: 8px;
+  font-size: 7px;
   white-space: nowrap;
-  padding: 4px 6px;
+  padding: 3px 5px;
   border: 1px solid #4f7d75;
   background: #0b222c;
   color: #c9f0e6;
@@ -3310,6 +3311,58 @@ input[type='number'] {
 .scene-switcher span {
   font-size: 11px;
   color: #95afbe;
+}
+/* Screen-space depth rail (local 3D analysis): compact annotation column
+   projected from the depth axis every frame. Positioned entirely in screen
+   pixels by the renderer — rows can never overlap or leave the viewport. */
+.depth-rail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.depth-rail-line {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  background: #4d7a8c66;
+}
+.depth-rail-row {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.depth-rail-row i {
+  width: 7px;
+  height: 1px;
+  background: #6b93a5;
+  flex: none;
+}
+.depth-rail-row span {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #7fa0b1;
+}
+.depth-rail-row.active span {
+  color: #c8ece2;
+}
+/* Short crossfade on every globe ↔ analysis handoff: a deliberate mode
+   change, never a hard black flash. */
+.viewer.is-entering > * {
+  animation: viewerIn 0.38s ease both;
+}
+@keyframes viewerIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .local-ocean .viewer {
   left: var(--rail);

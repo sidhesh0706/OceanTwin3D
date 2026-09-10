@@ -12,6 +12,7 @@ import type {
   RegionalView,
 } from './types';
 import { api, request, validateDataset, validateField } from './services/api';
+import { defaultExaggeration } from './ocean/frameFit';
 import GlobeExplorer from './explorer/GlobeExplorer';
 import { Inspector } from './components/Inspector';
 import { ToolRail } from './components/ToolRail';
@@ -82,7 +83,36 @@ export default function App({
   const [anchor, setAnchor] = useState<Observation | null>(null);
   const [region, setRegion] = useState<RegionalView | null>(null);
   const [regionBusy, setRegionBusy] = useState(false);
+  // Brief crossfade whenever the viewer swaps worlds so the handoff reads
+  // as a deliberate mode change instead of a hard flash.
+  const [entering, setEntering] = useState(false);
   const activeFrame = scene === 'ocean' && region ? region.frame : frame;
+
+  useEffect(() => {
+    setEntering(true);
+    const id = window.setTimeout(() => setEntering(false), 420);
+    return () => window.clearTimeout(id);
+  }, [scene]);
+
+  // Apply a default only when opening a region, not on depth/time refreshes.
+  const scaleRegion = useRef('');
+  useEffect(() => {
+    if (!region) {
+      scaleRegion.current = '';
+      return;
+    }
+    const b = region.dataset.bounds;
+    const key = [region.dataset.id, ...b.longitude, ...b.latitude, ...b.depth].join(':');
+    if (scaleRegion.current === key) return;
+    scaleRegion.current = key;
+    setExaggeration(
+      defaultExaggeration(
+        b.longitude[1] - b.longitude[0],
+        b.latitude[1] - b.latitude[0],
+        b.depth[1],
+      ),
+    );
+  }, [region]);
 
   // ── Refs ─────────────────────────────────────────────────────────────
   const fileInput = useRef<HTMLInputElement>(null);
@@ -567,8 +597,7 @@ export default function App({
         </div>
       </header>
 
-      {/* ── Cesium globe (fills everything between navbar and timeline) ── */}
-      <div className="viewer">
+      <div className={`viewer${entering ? ' is-entering' : ''}`}>
         {scene === 'globe' ? (
           <GlobeExplorer
             showField={showField}
@@ -641,6 +670,12 @@ export default function App({
             <span>{anchor?.id} · local water column</span>
             <button onClick={() => camera('surface')}>Top-down</button>
             <button onClick={() => camera('domain')}>3D ocean</button>
+            <button
+              onClick={() => setCameraKey((v) => v + 1)}
+              title="Recenter the fitted 3D view (keeps variable, depth and time)"
+            >
+              Reset view
+            </button>
           </>
         ) : (
           <>

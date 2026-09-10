@@ -1,83 +1,213 @@
 # OceanTwin3D
 
-**Interactive 4D ocean exploration · SIH26067 prototype**
+OceanTwin3D is an interactive 4D ocean data exploration prototype for SIH26067. It connects location, depth, time, model fields, and instrument profiles in one scientific workspace.
 
-Explore a global ocean model on a Cesium globe, change depth and time, follow currents, and compare model profiles with synthetic instruments. The presentation branch combines the original PyCharm project with the globe explorer contributed in manaour2006/OceanTwin3D.
+The application starts on a Cesium Earth globe. Selecting an observation opens a regional Three.js ocean view with depth slices, currents, profiles, transects, and region statistics. A FastAPI backend reads NetCDF data through xarray and NumPy and serves the built React application.
 
-**All bundled model values and all 22 instrument profiles are synthetic.** This is a scientific visualization and integration prototype, with no live INCOIS connection or operational forecast claim.
+> **Important:** The bundled model and instrument profiles are deterministic synthetic demonstration data. They are not live INCOIS data, an operational forecast, or independent validation of model skill.
 
-## Run in PyCharm
+Shared repository: https://github.com/sidhesh0706/OceanTwin3D
 
-Prerequisites: Python 3.12+ (tested with 3.13), Node.js 22, npm, and a hardware-accelerated WebGL browser.
-
-Open the **repository root** in PyCharm. On a fresh clone:
-
-```powershell
-git clone --branch codex/presentation-ready https://github.com/sidhesh0706/OceanTwin3D.git
-cd OceanTwin3D
-python setup_project.py
-.\.venv\Scripts\python.exe run.py
-```
-
-Choose the existing interpreter `.venv/Scripts/python.exe` in PyCharm, then run `run.py` or the included configuration under `.run/`. On macOS/Linux use `.venv/bin/python`.
-
-Open **[the explorer](http://127.0.0.1:8000/)**. The optional cinematic introduction is at **[/?intro](http://127.0.0.1:8000/?intro)**. The explorer opens directly for presentations.
-
-Setup installs locked dependencies and builds the frontend, including the pinned Cesium 1.128.0 engine, workers, styles and Natural Earth imagery. **Installation needs internet; the default demo runs locally afterward.** No Cesium token is required. Optional ion satellite/terrain layers require a user-supplied token and internet and are outside the offline demo path.
-
-After frontend changes, run `npm run build` inside `frontend`. Restart the Python service after backend or bundled-data changes.
-
-## Presentation walkthrough
-
-See **[docs/DEMO.md](docs/DEMO.md)** for a five-minute script, exact analysis coordinates, and recovery steps. See **[docs/VALIDATION.md](docs/VALIDATION.md)** for the validation record.
-
-See **[docs/SIH_PRESENTATION_GUIDE.md](docs/SIH_PRESENTATION_GUIDE.md)** for the complete project feature inventory, slide-ready SIH content, technical highlights, a 5–7 minute four-member presentation script, and judge Q&A.
+Teammate contributions integrated from https://github.com/manaour2006/OceanTwin3D (commit `1d129c0`).
 
 ## Features
 
-- Global globe with locally bundled NASA Blue Marble imagery, basin camera presets and geographic picking. Ocean overlays can be toggled independently of the Earth basemap.
-- Click an Argo float to open a broad local ocean cutout with coastline, currents, depth sections and its comparison profile. Switch between Top-down and 3D ocean, or return with Back to Earth. The Indian Ocean window spans 40–105°E and approximately 30°S–30°N on the native model grid.
-- Temperature, salinity, chlorophyll and derived current speed, with units and editable color ranges.
-- Continuous depth interpolation and 13 weekly model frames with playback and scrubbing.
-- Selected-depth maps draped on the globe; these show subsurface values at their geographic locations.
-- Schematic 3D depth layers and sampled points. All available response levels are used; depth exaggeration is explicitly displayed.
-- Model u/v current streamlines and particles. Animation speed is illustrative, not a real-time particle forecast.
-- 17 Argo and 5 glider markers, an expandable instrument list, depth profiles and model comparison.
-- Calculated RMSE, MAE and bias with model/observation timestamps and temporal offset.
-- Profile probe: map click or coordinates, downward-increasing depth chart, all-variable table.
-- Transect: two endpoints, shortest great-circle route, fixed-depth value-versus-distance chart.
-- Region statistics: two rectangular corners, finite grid-cell mean/min/max/median/population standard deviation.
-- NetCDF upload with validation and a restore-demo action.
-- Presentation mode, guided tour, optional cinematic intro, local API documentation.
-- Optional read-only WebMCP tool `read_ocean_view`.
+### Global globe
 
-## Model and scientific interpretation
+- Cesium Earth globe with locally bundled NASA Blue Marble imagery.
+- Independent controls for the geographic basemap and scientific ocean overlay.
+- Basin camera presets, orbit, zoom, geographic picking, and observation markers.
+- Locally prepared Natural Earth land geometry for geographic context.
 
-| Dimension | Bundled extent |
+### Regional ocean view
+
+- Top-down and angled 3D views around a selected observation.
+- Temperature, salinity, chlorophyll, and derived current speed.
+- Continuous depth selection interpolated between source levels.
+- Time playback, frame navigation, timeline scrubbing, and loading-state preservation.
+- Current vectors, streamlines, and illustrative animated particles.
+- Depth-colored sections and a sampled 3D volume view.
+- Responsive camera fitting for the available viewport.
+
+### Observations and analysis
+
+- Synthetic Argo and glider markers with selectable profiles.
+- Model sampling at instrument coordinates and observed depths.
+- Calculated RMSE, MAE, bias, matched levels, and timestamp offset.
+- Profile probe for all variables through the water column.
+- Fixed-depth great-circle transects between two coordinates.
+- Region statistics: mean, minimum, maximum, median, and population standard deviation.
+- Regional cutouts containing fields, currents, coastlines, and nearby observations.
+
+The regional vertical view is a visualization aid. Its depth scale is deliberately exaggerated and labelled; it is not a literal bathymetric reconstruction.
+
+## Demo data
+
+The default dataset is generated by `backend/scripts/generate_demo_data.py` and stored in `backend/data/`.
+
+| Property | Value |
 | --- | --- |
-| Longitude | −180° to 177.5°, 144 periodic coordinates at 2.5° |
-| Latitude | −75° to 75°, 62 coordinates |
-| Depth | 0, 10, 25, 50, 100, 200, 500, 1000, 2000 m |
-| Time | 1 January–26 March 2026, 13 weekly frames |
-| Instruments | 17 Argo + 5 gliders, profiles dated 12 February 2026 |
+| Longitude | 144 global coordinates, -180 to 177.5 degrees, 2.5 degree spacing |
+| Latitude | 62 coordinates, -75 to 75 degrees |
+| Depth | 0, 10, 25, 50, 100, 200, 500, 1000, and 2000 metres |
+| Time | 13 weekly frames from 1 January to 26 March 2026 |
+| Observations | 17 synthetic Argo profiles and 5 synthetic glider profiles |
+| Variables | Temperature, salinity, chlorophyll, u-current, and v-current |
 
-The deterministic generator combines analytic ocean-like gradients, thermoclines, currents and biological patterns with a Natural Earth land mask. Observations sample the model plus seeded perturbations. Their comparison residuals demonstrate the workflow; they do **not** establish independent model skill.
+The generator creates analytic ocean-like gradients, thermoclines, currents, biological patterns, a land mask, and deterministic profile perturbations. It does not download data.
 
-Coordinates, units and missing samples are validated. Horizontal interpolation uses actual coordinate spacing. Complete global grids extend periodically across the dateline; a transect from 170°E to 170°W follows the short arc. Interpolation does not fill across missing coastal data. Rendered coast-adjacent gaps reflect the coarse model mask and differ from the finer basemap coastline.
-
-The depth map is a geographic projection. The 3D view uses schematic depth shells and sampled points with 100–1000× vertical exaggeration, labelled in the interface. The isosurface mode is a threshold-band preview, not marching cubes. Region statistics weight each wet grid cell equally; they are not area-weighted ocean averages. Transects are fixed-depth sections, not full vertical cross-sections. Polar latitudes outside ±75° have no bundled model data.
-
-For `e = model − observed`: MAE = mean(abs(e)), RMSE = sqrt(mean(e²)), bias = mean(e). Only finite pairs contribute. UI comparisons use the displayed model time; the API chooses the nearest observation time when no time index is supplied.
-
-Regenerate all demo data without network access:
+Regenerate it with:
 
 ```powershell
 .\.venv\Scripts\python.exe -m backend.scripts.generate_demo_data
 ```
 
-## Use another model
+## Quick start
 
-Choose **Settings → Load NetCDF dataset**, or configure these variables in the PyCharm run configuration:
+### Requirements
+
+- Python 3.12 or newer; Python 3.13 is tested.
+- Node.js 22 LTS and npm.
+- A WebGL-capable browser with hardware acceleration.
+- Internet access during installation only.
+
+### Windows setup
+
+From the repository root:
+
+```powershell
+python setup_project.py
+.\.venv\Scripts\python.exe run.py
+```
+
+The setup script creates `.venv`, installs locked Python dependencies, runs `npm ci`, prepares local Cesium assets, and builds the production viewer.
+
+Open the application at http://127.0.0.1:8000/.
+
+Useful pages:
+
+- Direct presentation explorer (skip intro): http://127.0.0.1:8000/?explore
+- Introduction (also the default entry): http://127.0.0.1:8000/?intro
+- API documentation: http://127.0.0.1:8000/docs
+
+Manual setup:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.lock.txt
+Push-Location frontend
+npm ci
+npm run build
+Pop-Location
+.\.venv\Scripts\python.exe run.py
+```
+
+On macOS or Linux, use `.venv/bin/python` instead of the Windows interpreter path.
+
+## Development
+
+Run the backend from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+In a second terminal, run Vite:
+
+```powershell
+Push-Location frontend
+npm run dev
+Pop-Location
+```
+
+Open http://127.0.0.1:5173. Vite proxies `/api` requests to FastAPI. Restart the backend after backend or bundled-data changes. Run a production build before testing the single-process `run.py` entry point after frontend changes.
+
+## Verification
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+Push-Location frontend
+npm test
+npm run format:check
+npm run build
+Pop-Location
+```
+
+Backend tests cover dataset dimensions, interpolation, temporal changes, currents, API validation, uploads, periodic coordinates, dateline transects, profiles, comparisons, and regional statistics. Frontend tests cover nonuniform-grid interpolation, longitude normalization, periodic seams, and missing cells.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[NetCDF model or generated demo] --> B[xarray and NumPy adapter]
+    O[Observation JSON] --> C[OceanService]
+    B --> C
+    C --> D[FastAPI]
+    D --> E[React and TypeScript]
+    E --> F[Cesium Earth globe]
+    E --> G[Three.js regional ocean]
+    E --> H[Recharts profiles and analysis]
+    I[NASA imagery and Natural Earth geometry] --> F
+    I --> G
+```
+
+Backend ownership:
+
+- `backend/app/adapters/netcdf.py`: coordinate, alias, unit, missing-value, and grid normalization.
+- `backend/app/services/ocean.py`: model access, interpolation, profiles, comparisons, and bounded responses.
+- `backend/app/services/region.py`: regional cutouts and geographic context.
+- `backend/app/main.py`: REST API and production frontend serving.
+- `backend/app/models.py`: observation schemas.
+
+Frontend ownership:
+
+- `frontend/src/explorer/GlobeExplorer.tsx`: global Cesium experience.
+- `frontend/src/cesium/`: globe layers, camera, sampling, and observations.
+- `frontend/src/ocean/`: regional Three.js scene, fields, particles, and coordinates.
+- `frontend/src/components/SpatialAnalysis.tsx`: probe, transect, and statistics workflows.
+- `frontend/src/App.tsx`: shared state, controls, timeline, uploads, and comparison panels.
+- `frontend/src/services/api.ts`: API calls and response contracts.
+- `frontend/scripts/prepare-cesium.mjs`: local Cesium engine and asset preparation.
+
+## API
+
+The complete contract is available at `/docs` while the server is running.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/health` | Service and dataset readiness |
+| `GET /api/datasets` | Active dataset metadata |
+| `GET /api/variables`, `/api/times`, `/api/depths` | Model dimensions and variables |
+| `GET /api/ocean/slice` | Variable at one depth and time |
+| `GET /api/ocean/volume` | Bounded depth-resolved field |
+| `GET /api/currents` | u/v current field |
+| `GET /api/ocean/inspect` | Interpolated values at one coordinate |
+| `GET /api/ocean/profile` | Full vertical profile |
+| `GET /api/ocean/region` | Regional field, currents, coastlines, and observations |
+| `GET /api/ocean/transect` | Fixed-depth great-circle transect |
+| `GET /api/ocean/stats` | Finite-cell regional statistics |
+| `GET /api/observations`, `/api/observations/{id}` | Observation summaries and profiles |
+| `GET /api/compare/{id}` | Model-observation comparison metrics |
+| `POST /api/datasets/upload` | Validate and load a NetCDF upload |
+| `POST /api/datasets/demo` | Restore the bundled demo dataset |
+
+## Scientific assumptions and limitations
+
+- Comparison error is `model - observation`; only finite matched pairs contribute.
+- MAE, RMSE, and bias are calculated from the selected values, not static labels.
+- Time selection uses model frames and does not invent temporal interpolation.
+- Horizontal interpolation uses coordinate spacing and preserves missing coastal cells.
+- Global longitude interpolation is periodic, including short paths across the date line.
+- Region statistics are equally weighted grid-cell statistics, not area-weighted averages.
+- Transects are fixed-depth sections, not full vertical cross-sections.
+- The bundled model has no data beyond 75 degrees north or south.
+- The isosurface display is a threshold-band preview, not marching cubes.
+- Current particles are accelerated for readability, not a real-time forecast.
+- The NASA basemap is static geographic context, not an observation layer.
+
+## Loading another NetCDF dataset
+
+Use **Settings -> Load NetCDF dataset**, or configure the server:
 
 ```powershell
 $env:OCEANTWIN_DATASET = 'C:\ocean-data\model.nc'
@@ -85,41 +215,32 @@ $env:OCEANTWIN_OBSERVATIONS = 'C:\ocean-data\observations.json'
 .\.venv\Scripts\python.exe run.py
 ```
 
-The backend does not automatically read `.env`. See `.env.example` for configuration.
+The server does not automatically load `.env`; `.env.example` documents supported names.
 
-Supported datasets are rectilinear regional or complete periodic global grids, with 1D latitude, longitude, depth and standard-calendar time coordinates. Common aliases (lat/lon, thetao/so/chl/uo/vo) and Celsius/Kelvin or m/s/cm/s are normalized. Depth must be metres, not pressure or sigma coordinates. Duplicate coordinates, curvilinear grids and regional grids split by the dateline require preprocessing.
+Compatible files use rectilinear one-dimensional latitude, longitude, depth, and standard-calendar time coordinates. Common aliases include `lat`/`lon`, `thetao`, `so`, `chl`, `uo`, and `vo`. Temperature may be Celsius or Kelvin; currents may be metres per second or centimetres per second. Depth must be metres, not pressure or sigma coordinates.
 
-Upload limit: 64 MiB compressed and 256 MiB estimated decoded variables. A failed upload preserves the current dataset. Uploads are session-only and attach no synthetic instruments to the new model. Global slices are capped at 100 coordinates per horizontal axis, volumes at 80 × 80 × 32, and currents at 37 × 37; regional caps are smaller. Analysis uses the original model grid.
+Curvilinear grids, duplicate coordinates, unsupported calendars, dateline-split regional grids, and unsupported units require preprocessing. Uploads are limited to 64 MiB compressed and a 256 MiB estimated decoded-data budget. Failed uploads leave the active dataset unchanged; uploaded datasets are session-only.
 
-## Development and checks
+## Project layout
 
-Run the backend from the root and Vite in a second terminal:
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-```powershell
-cd frontend
-npm ci
-npm run dev
-```
-
-Vite serves [localhost:5173](http://127.0.0.1:5173) and proxies the API to port 8000.
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-cd frontend
-npm test
-npm run format:check
-npm run build
+```text
+backend/                 FastAPI app, adapters, services, data, and tests
+frontend/src/             React, Cesium, Three.js, charts, and UI
+frontend/public/          Local imagery, geography, and generated assets
+frontend/scripts/         Frontend tests and Cesium preparation
+data_sources/             Offline Natural Earth source and attribution
+docs/                     Demo, validation, and presentation documentation
+run.py                    Single-process API and production viewer entry point
+setup_project.py          Reproducible local setup script
 ```
 
-## Architecture and API
+## Additional documentation
 
-FastAPI → OceanService → xarray/NumPy NetCDF adapter. React/TypeScript → Cesium globe, Three.js regional ocean renderer and Recharts. Float selection connects the globe to the regional renderer through `/api/ocean/region`. One Python process serves the API and production build.
+- [docs/DEMO.md](docs/DEMO.md): five-minute walkthrough and recovery steps.
+- [docs/SIH_PRESENTATION_GUIDE.md](docs/SIH_PRESENTATION_GUIDE.md): feature inventory, technical talking points, and judge Q&A.
+- [docs/VALIDATION.md](docs/VALIDATION.md): automated and browser verification record.
+- [frontend/public/earth-imagery.md](frontend/public/earth-imagery.md): NASA Blue Marble attribution.
 
-Interactive [API documentation](http://127.0.0.1:8000/docs) lists all parameters. Principal routes: `/api/datasets`, `/api/ocean/slice`, `/api/ocean/volume`, `/api/currents`, `/api/ocean/inspect`, `/api/ocean/profile`, `/api/ocean/transect`, `/api/ocean/stats`, `/api/observations`, `/api/compare/{id}`.
+## Scope and future work
 
-Source locations: backend normalization in `backend/app/adapters/netcdf.py`, analysis in `backend/app/services/ocean.py`, globe in `frontend/src/explorer/GlobeExplorer.tsx`, controls in `frontend/src/App.tsx`, and analysis panels in `frontend/src/components/SpatialAnalysis.tsx`.
-
-Natural Earth geography is public domain. NASA Blue Marble imagery is credited to NASA Earth Observatory / Reto Stöckli; see `frontend/public/earth-imagery.md` for the original source. It is static geographic context, not current ocean observations. Cesium is Apache-2.0; bundled third-party notices remain with its assets. Dependency licenses apply. Real data connectors, operational forecasting, assimilation, QC workflows and validated INCOIS datasets remain future work.
+This repository demonstrates a complete local exploration workflow. Production use would require validated operational datasets, data-quality controls, authentication, deployment, real-time ingestion, forecast provenance, performance testing, and domain review. Those capabilities are not claimed by the bundled synthetic demo.

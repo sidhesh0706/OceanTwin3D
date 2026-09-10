@@ -1,5 +1,11 @@
 # Validation — 9 September 2026
 
+## Integration update — 10 September 2026
+
+Integrated teammate commit `1d129c0`, including the shortened introductory sequence, revised local ocean camera, depth-label rail and Reset view control. Fixed the new default-scale effect so refreshing a regional time/depth frame preserves user-selected exaggeration, and anchored the depth rail to viewport coordinates.
+
+The integrated production build passed, as did 28 backend and 3 frontend tests (the same two previously recorded Python dependency warnings). Browser review verified the NASA Earth view, Argo-to-ocean transition, profile comparison, broad Top-down coverage, 3D ocean and Reset view controls. No warning/error logs were captured during that local-ocean review. Use `/?explore` to skip the intro during the presentation; the root URL now starts the intro.
+
 Scope: presentation preparation on `codex/presentation-ready`, based on teammate commit `fc337c6` and the original prototype `522ef8d`.
 
 ## Automated checks

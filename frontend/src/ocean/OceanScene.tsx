@@ -5,6 +5,9 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
 import type { CameraPreset, Dataset, Frame, Land, Mode, Observation, Variable } from '../types';
 import { projection, depthY } from './coordinates';
+import { viewAngles } from './frameFit';
+// Console marker proving which 3D framing code a session runs (rev 8:
+// near-frontal oblique + gated focus + screen-space depth rail).
 import { Slice, Volume, SectionCurtain } from './Fields';
 import { CurrentParticles } from './CurrentParticles';
 
@@ -90,13 +93,11 @@ function Reference({
   dataset,
   exaggeration,
   grid,
-  depth,
   topDown,
 }: {
   dataset: Dataset;
   exaggeration: number;
   grid: boolean;
-  depth: number;
   topDown: boolean;
 }) {
   const p = projection(dataset),
@@ -157,11 +158,6 @@ function Reference({
             ]}
             color="#668490"
           />
-          <Html position={[w + 0.42, depthY(d, exaggeration), h]} center>
-            <div className={`depth-tick ${d === depth ? 'active' : ''}`}>
-              {d === 0 ? 'SURFACE' : `${d.toLocaleString()} m`}
-            </div>
-          </Html>
         </group>
       ))}
       {grid &&
@@ -208,6 +204,94 @@ function Reference({
   );
 }
 
+/**
+ * Screen-space depth rail: projects the depth-axis anchors every frame and
+ * lays the labels out vertically with a guaranteed minimum gap, so they can
+ * never overlap or leave the viewport. Pure annotation overlay — it changes
+ * no geometry, no camera, no field. Replaces the old world-space ticks.
+ */
+export const DEPTH_RAIL_LEVELS = [0, 100, 500, 1000, 2000];
+const RAIL_GAP_PX = 22;
+const RAIL_ROW_H = 26;
+
+function DepthRail({
+  dataset,
+  exaggeration,
+  depth,
+  anchor,
+}: {
+  dataset: Dataset;
+  exaggeration: number;
+  depth: number;
+  anchor: { x: number; z: number };
+}) {
+  const { camera, size } = useThree();
+  const p = useMemo(() => projection(dataset), [dataset]);
+  const maxDepth = dataset.bounds.depth[1];
+  const levels = useMemo(() => DEPTH_RAIL_LEVELS.filter((d) => d <= maxDepth), [maxDepth]);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const lineRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
+  const v = useMemo(() => new THREE.Vector3(), []);
+  useFrame(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const W = size.width;
+    const H = size.height;
+    const ax = p.width / 2 + 0.35;
+    const az = p.height / 2;
+    const pts = levels.map((d) => {
+      v.set(ax, depthY(d, exaggeration), az).project(camera);
+      return { d, x: (v.x * 0.5 + 0.5) * W, y: (-v.y * 0.5 + 0.5) * H, ok: v.z < 1 };
+    });
+    const onScreen = pts.every((q) => q.ok) && pts[0].x > -60 && pts[0].x < W + 60;
+    rail.style.opacity = onScreen ? '1' : '0';
+    if (!onScreen) return;
+    const ys = pts.map((q) => q.y);
+    for (let i = 1; i < ys.length; i++) ys[i] = Math.max(ys[i], ys[i - 1] + RAIL_GAP_PX);
+    const overflow = ys[ys.length - 1] + RAIL_ROW_H / 2 - (H - 10);
+    if (overflow > 0) for (let i = 0; i < ys.length; i++) ys[i] -= overflow;
+    const underflow = ys[0] - RAIL_ROW_H / 2 - 10;
+    if (underflow < 0) for (let i = 0; i < ys.length; i++) ys[i] -= underflow;
+    const railX = Math.min(W - 96, Math.max(10, pts[0].x + 12));
+    const line = lineRef.current;
+    if (line) {
+      line.style.left = `${railX.toFixed(1)}px`;
+      line.style.top = `${ys[0].toFixed(1)}px`;
+      line.style.height = `${Math.max(0, ys[ys.length - 1] - ys[0]).toFixed(1)}px`;
+    }
+    rowRefs.current.forEach((el, i) => {
+      if (el)
+        el.style.transform = `translate(${railX.toFixed(1)}px, ${(ys[i] - RAIL_ROW_H / 2).toFixed(1)}px)`;
+    });
+  });
+  return (
+    <Html
+      position={[anchor.x, 0, anchor.z]}
+      calculatePosition={(_, __, viewport) => [viewport.width / 2, viewport.height / 2]}
+      zIndexRange={[25, 0]}
+      style={{ pointerEvents: 'none' }}
+      fullscreen
+    >
+      <div ref={railRef} className="depth-rail" style={{ opacity: 0 }}>
+        <div ref={lineRef} className="depth-rail-line" />
+        {levels.map((d, i) => (
+          <div
+            key={d}
+            ref={(el) => {
+              rowRefs.current[i] = el;
+            }}
+            className={`depth-rail-row${d === depth ? ' active' : ''}`}
+          >
+            <i />
+            <span>{d === 0 ? 'SURFACE' : `${d.toLocaleString()} m`}</span>
+          </div>
+        ))}
+      </div>
+    </Html>
+  );
+}
+
 function geoLabel(value: number, longitude = false) {
   const n = longitude ? ((((value + 180) % 360) + 360) % 360) - 180 : value;
   return `${Math.abs(n).toFixed(1)}°${longitude ? (n < 0 ? 'W' : 'E') : n < 0 ? 'S' : 'N'}`;
@@ -218,29 +302,47 @@ function CameraRig({
   cameraKey,
   dataset,
   exaggeration,
+  focus,
 }: {
   preset: CameraPreset;
   cameraKey: number;
   dataset: Dataset;
   exaggeration: number;
+  /**
+   * Selected-observation anchor in world x/z. 3D ONLY: the framing target
+   * leans toward it. Top-down keeps the region center (original behavior).
+   */
+  focus: { x: number; z: number } | null;
 }) {
   const controls = useRef<OrbitControlsImpl>(null),
     moving = useRef(true);
+  const logged = useRef('');
   const { camera, size } = useThree();
   const underwater = preset === 'underwater' || preset.startsWith('dive-');
   const bottom = depthY(dataset.bounds.depth[1], exaggeration);
-  const target = useMemo(
-    () => new THREE.Vector3(0, preset === 'surface' ? 0 : bottom / 2, 0),
-    [preset, bottom],
-  );
+  const target = useMemo(() => {
+    const t = new THREE.Vector3(0, preset === 'surface' ? 0 : bottom / 2, 0);
+    // 3D ONLY: lean the target toward the selected observation so it sits
+    // near the visual center. The fit corners are evaluated relative to the
+    // target, so containment is preserved. Top-down keeps region center.
+    if (preset !== 'surface' && focus) {
+      t.x += focus.x * 0.35;
+      t.z += focus.z * 0.35;
+    }
+    return t;
+  }, [preset, bottom, focus?.x, focus?.z]);
   const position = useMemo(() => {
     const p = projection(dataset);
+    // Near-frontal oblique for 3D (~20° down, ~5° azimuth): north stays up,
+    // the diagonal-card effect is gone. Dives stay near-horizontal, the
+    // surface map stays top-down. This direction is the ONLY framing change
+    // versus the original renderer; the fit math below is untouched.
     const direction = new THREE.Vector3(
-      ...((preset === 'surface' ? [0, 1, 0.001] : underwater ? [1, 0.15, 1.4] : [1, 1.05, 1.5]) as [
-        number,
-        number,
-        number,
-      ]),
+      ...((preset === 'surface'
+        ? [0, 1, 0.001]
+        : underwater
+          ? [1, 0.15, 1.4]
+          : [0.15, 0.62, 1.7]) as [number, number, number]),
     ).normalize();
     const right = new THREE.Vector3()
       .crossVectors(new THREE.Vector3(0, 1, 0), direction)
@@ -264,10 +366,19 @@ function CameraRig({
   useEffect(() => {
     moving.current = true;
   }, [preset, cameraKey, position]);
+  // Proof-of-run marker: paste this console line when reporting framing.
+  useEffect(() => {
+    const a = viewAngles([0.15, 0.62, 1.7]);
+    const key = `rev=8 preset=${preset} elev=${a.elevationDeg.toFixed(1)} az=${a.azimuthDeg.toFixed(1)}`;
+    if (logged.current !== key) {
+      logged.current = key;
+      console.info(`[OceanTwin 3D] ${key}`);
+    }
+  }, [preset, position]);
   useFrame((_, dt) => {
     if (!moving.current || !controls.current) return;
-    camera.position.lerp(position, 1 - Math.exp(-dt * 4));
-    controls.current.target.lerp(target, 1 - Math.exp(-dt * 4));
+    camera.position.lerp(position, 1 - Math.exp(-dt * 6));
+    controls.current.target.lerp(target, 1 - Math.exp(-dt * 6));
     controls.current.update();
     if (camera.position.distanceTo(position) < 0.025) moving.current = false;
   });
@@ -279,7 +390,10 @@ function CameraRig({
       dampingFactor={0.08}
       minDistance={7}
       maxDistance={100}
-      maxPolarAngle={Math.PI * 0.86}
+      // 3D never flops fully top-down (labels would stack) nor far under
+      // the plane; the surface map keeps full orbit freedom.
+      minPolarAngle={preset === 'surface' ? 0 : 0.85}
+      maxPolarAngle={preset === 'surface' ? Math.PI * 0.52 : Math.PI * 0.86}
       onStart={() => {
         moving.current = false;
       }}
@@ -466,6 +580,11 @@ function World(props: SceneProps) {
     threshold,
   } = props;
   const p = projection(dataset);
+  // Selected-observation anchor for 3D framing + the screen-space rail.
+  const selectedObs = observations.find((o) => o.id === selected) ?? null;
+  const focus = selectedObs
+    ? { x: p.x(selectedObs.longitude), z: p.z(selectedObs.latitude) }
+    : null;
   const regional =
     dataset.bounds.longitude[0] <= 45 &&
     dataset.bounds.longitude[1] >= 100 &&
@@ -483,15 +602,16 @@ function World(props: SceneProps) {
         cameraKey={cameraKey}
         dataset={dataset}
         exaggeration={exaggeration}
+        focus={focus}
       />
       <Reference
         dataset={dataset}
         exaggeration={exaggeration}
         grid={grid}
-        depth={frame.slice.depth ?? 0}
         topDown={preset === 'surface'}
       />
       <Geography land={land} dataset={dataset} />
+      {/* 3D-only faint curtains: the surface preset shows none. */}
       {mode !== 'iso' &&
         preset !== 'surface' &&
         (['south', 'east'] as const).map((edge) => (
@@ -502,7 +622,7 @@ function World(props: SceneProps) {
             field={frame.volume}
             variable={variable}
             range={range}
-            opacity={opacity * 0.8}
+            opacity={opacity * 0.25}
             exaggeration={exaggeration}
           />
         ))}
@@ -542,6 +662,12 @@ function World(props: SceneProps) {
         onSelect={onSelect}
         exaggeration={exaggeration}
       />
+      <DepthRail
+        dataset={dataset}
+        exaggeration={exaggeration}
+        depth={frame.slice.depth ?? 0}
+        anchor={focus ?? { x: 0, z: 0 }}
+      />
       {regional && (
         <group>
           <Html position={[p.x(78.5), 0.2, p.z(22.5)]} center>
@@ -565,7 +691,9 @@ function World(props: SceneProps) {
 export default function OceanScene(props: SceneProps) {
   return (
     <Canvas
-      camera={{ position: [13, 14, 21], fov: 43, near: 0.1, far: 120 }}
+      // Near-frontal start so the first frame already reads north-up; the
+      // rig then glides to the fitted composition.
+      camera={{ position: [3, 12, 24], fov: 43, near: 0.1, far: 120 }}
       dpr={[1, 1.5]}
       gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       fallback={

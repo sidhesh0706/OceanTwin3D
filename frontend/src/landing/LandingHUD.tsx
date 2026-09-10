@@ -41,9 +41,9 @@ export default function LandingHUD({
       <h1>{def.title}</h1>
       <p>{def.body}</p>
 
-      {scene === 'indian-ocean' && (
+      {scene === 'ocean' && (
         <div className="landing-fact">
-          <span>SURFACE VELOCITY</span>
+          <span>SURFACE VELOCITY · MODEL U/V</span>
           <div className="landing-scale">
             <i>0.00</i>
             <b />
@@ -67,7 +67,7 @@ export default function LandingHUD({
         </div>
       )}
 
-      {scene === 'dive' && (
+      {scene === 'depth' && (
         <div className="landing-depth">
           <TechnicalLabel>MODEL DEPTH LEVEL</TechnicalLabel>
           <TelemetryValue>
@@ -76,7 +76,7 @@ export default function LandingHUD({
         </div>
       )}
 
-      {scene === 'ocean-field' && dataset && (
+      {scene === 'time' && dataset && (
         <div className="landing-fact landing-vars">
           {dataset.variables.map((v) => (
             <span key={v.id}>
@@ -86,11 +86,11 @@ export default function LandingHUD({
               </small>
             </span>
           ))}
-          <em>{dataset.synthetic ? 'DEMO DATA · SYNTHETIC' : 'LOCAL DATA'}</em>
+          <em>{dataset.synthetic ? 'SYNTHETIC DEMONSTRATION DATASET' : 'LOCAL DATA'}</em>
         </div>
       )}
 
-      {scene === 'comparison' && (
+      {scene === 'observations' && (
         <div className="landing-fact landing-compare">
           {compareState === 'loading' && <span>COLLOCATING MODEL PROFILE…</span>}
           {compareState === 'error' && <span>COMPARISON READY</span>}
@@ -114,7 +114,7 @@ export default function LandingHUD({
               </div>
             </>
           )}
-          {dataset?.synthetic && <em>DEMO DATA · SYNTHETIC</em>}
+          {dataset?.synthetic && <em>SYNTHETIC INSTRUMENT PROFILES</em>}
         </div>
       )}
     </div>

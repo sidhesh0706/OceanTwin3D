@@ -15,9 +15,13 @@ const Explorer = lazy(() => import('../App'));
 type Phase = ExperienceMode | 'leaving';
 
 export default function ExperienceRouter() {
-  const [phase, setPhase] = useState<Phase>(() =>
-    new URLSearchParams(window.location.search).has('intro') ? 'landing' : 'explorer',
-  );
+  const [phase, setPhase] = useState<Phase>(() => {
+    const q = new URLSearchParams(window.location.search);
+    // Direct explorer stays available: /?explore skips the cinematic.
+    // /?intro (or default) plays splash → landing → explorer.
+    if (q.has('explore')) return 'explorer';
+    return 'landing';
+  });
   const [seed, setSeed] = useState<ExplorerSeed>(defaultSeed);
   const entered = useRef(phase !== 'landing');
 

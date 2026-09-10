@@ -5,9 +5,10 @@
 
 /* Cinematic title card: pure black, sparse white/blue starfield (pure
    CSS, no DOM nodes), one centered brand lockup revealed in sequence.
-   Timing is independent of loading — the landing initializes underneath
-   while this plays, then it crossfades out. Pointer-transparent so Skip
-   stays clickable throughout. */
+   ~2.2 s phased performance driven by .is-enter/.is-hold/.is-exit classes:
+   ENTER resolves the wordmark, HOLD keeps the lockup readable, EXIT fades
+   the whole overlay into the live landing beneath. Pointer-transparent so
+   Skip stays clickable throughout. */
 .splash {
   position: fixed;
   inset: 0;
@@ -21,10 +22,13 @@
   color: #fff;
   overflow: hidden;
   pointer-events: none;
-  /* Darkness lifting: the whole overlay — backdrop, stars, type —
-     dissolves together over the live landing beneath. No objects,
-     no mask edge, no flash. */
-  animation: splashEnd 0.9s ease 3.4s both;
+  opacity: 1;
+}
+/* EXIT: the whole overlay — backdrop, stars, type — dissolves together
+   over the live landing beneath. No objects, no mask edge, no flash. */
+.splash.is-exit {
+  opacity: 0;
+  transition: opacity 0.5s ease;
 }
 /* Opaque backdrop isolated on its own layer so nothing — no mask, no
    blend, no clip — can ever cut holes into the wordmark. Type always
@@ -50,7 +54,7 @@
     radial-gradient(1.5px 1.5px at 52% 44%, #ffffffaa 50%, transparent 51%),
     radial-gradient(1px 1px at 70% 76%, #38bdf888 50%, transparent 51%),
     radial-gradient(1px 1px at 24% 52%, #cbd5e188 50%, transparent 51%);
-  animation: splashDrift 1.3s ease 3s both;
+  animation: splashDrift 1.6s ease 0.1s both;
 }
 
 .splash-bg::before {
@@ -112,7 +116,7 @@
   );
   opacity: 0;
   pointer-events: none;
-  animation: splashSweep 1.1s ease 0.45s both;
+  animation: splashSweep 0.7s ease 0.35s both;
 }
 /* Controlled wordmark: large but never edge-to-edge (~50vw desktop). */
 .splash-title {
@@ -123,7 +127,6 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   line-height: 1;
-  animation: splashDissolve 0.7s ease 3.55s both;
 }
 .splash-ocean,
 .splash-twin {
@@ -132,12 +135,12 @@
 }
 .splash-ocean {
   color: #f2f5f7;
-  animation: splashReveal 1s cubic-bezier(0.22, 0.61, 0.36, 1) 0.4s both;
+  animation: splashReveal 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) 0.3s both;
 }
 .splash-twin {
   color: #18c8e8;
   text-shadow: 0 0 26px #18c8e838;
-  animation: splashReveal 1s cubic-bezier(0.22, 0.61, 0.36, 1) 0.6s both;
+  animation: splashReveal 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) 0.45s both;
 }
 /* Center-outward resolve: clip opens from the middle while the glyphs
    sharpen into place. No flying letters, no typing. */
@@ -177,9 +180,7 @@
   padding-left: 0.24em;
   color: #c3d2dd;
   opacity: 0;
-  animation:
-    splashSubRise 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) 2s both,
-    splashSubOut 0.4s ease 3.4s both;
+  animation: splashSubRise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) 0.9s both;
 }
 @keyframes splashSubRise {
   from {
@@ -203,21 +204,6 @@
 }
 /* Wordmark contracts toward the center: scale + tracking + blur + fade —
    becoming a point of origin, not a scale-down. */
-/* Gentle dissolve: slight contraction, faint blur, no flight. */
-@keyframes splashDissolve {
-  to {
-    opacity: 0;
-    transform: scale(0.97);
-    filter: blur(4px);
-  }
-}
-@keyframes splashSubOut {
-  to {
-    opacity: 0;
-    transform: translateY(-8px);
-    filter: blur(6px);
-  }
-}
 @keyframes splashDrift {
   from {
     opacity: 0;
@@ -229,12 +215,6 @@
   to {
     opacity: 0;
     transform: scale(1.18);
-  }
-}
-@keyframes splashEnd {
-  to {
-    opacity: 0;
-    visibility: hidden;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -255,8 +235,8 @@
   .splash-drift {
     display: none;
   }
-  .splash {
-    animation: splashEnd 0.3s ease 1.4s both;
+  .splash.is-exit {
+    transition-duration: 0.2s;
   }
 }
 @media (max-width: 900px) {
