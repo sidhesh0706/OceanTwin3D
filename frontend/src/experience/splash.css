@@ -1,0 +1,263 @@
+/* OceanTwin cinematic landing. Restrained scientific instrument language:
+   deep navy, cool white, cyan reserved for active data. The 3D world is
+   the hero; UI stays secondary and never covers the explorer (which owns
+   its own styles in styles.css). */
+
+/* Cinematic title card: pure black, sparse white/blue starfield (pure
+   CSS, no DOM nodes), one centered brand lockup revealed in sequence.
+   ~2.2 s phased performance driven by .is-enter/.is-hold/.is-exit classes:
+   ENTER resolves the wordmark, HOLD keeps the lockup readable, EXIT fades
+   the whole overlay into the live landing beneath. Pointer-transparent so
+   Skip stays clickable throughout. */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: transparent;
+  color: #fff;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+}
+/* EXIT: the whole overlay — backdrop, stars, type — dissolves together
+   over the live landing beneath. No objects, no mask edge, no flash. */
+.splash.is-exit {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+/* Opaque backdrop isolated on its own layer so nothing — no mask, no
+   blend, no clip — can ever cut holes into the wordmark. Type always
+   paints fully opaque above it, then everything dissolves together. */
+.splash-bg {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+/* Forward-motion layer: a second sparse field, slightly bluer, breathing
+   outward once — the feeling of moving through space, not a warp tunnel. */
+.splash-drift {
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(1.5px 1.5px at 30% 30%, #e8f1f7cc 50%, transparent 51%),
+    radial-gradient(1px 1px at 42% 62%, #3b82f699 50%, transparent 51%),
+    radial-gradient(1px 1px at 58% 28%, #ffffff99 50%, transparent 51%),
+    radial-gradient(2px 2px at 64% 58%, #22d3eebb 0%, #22d3ee33 45%, transparent 70%),
+    radial-gradient(1px 1px at 36% 74%, #2563eb99 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 52% 44%, #ffffffaa 50%, transparent 51%),
+    radial-gradient(1px 1px at 70% 76%, #38bdf888 50%, transparent 51%),
+    radial-gradient(1px 1px at 24% 52%, #cbd5e188 50%, transparent 51%);
+  animation: splashDrift 1.6s ease 0.1s both;
+}
+
+.splash-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: splashTwinkle 7s ease-in-out infinite alternate;
+  background:
+    radial-gradient(1px 1px at 6% 18%, #ffffffcc 50%, transparent 51%),
+    radial-gradient(1px 1px at 13% 72%, #3b82f6b3 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 19% 34%, #e8f1f7b3 50%, transparent 51%),
+    radial-gradient(1px 1px at 24% 88%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 29% 8%, #2563eb99 50%, transparent 51%),
+    radial-gradient(1px 1px at 33% 55%, #cbd5e199 50%, transparent 51%),
+    radial-gradient(2px 2px at 38% 24%, #22d3eecc 0%, #22d3ee33 45%, transparent 70%),
+    radial-gradient(1px 1px at 42% 78%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 47% 12%, #e8f1f799 50%, transparent 51%),
+    radial-gradient(1px 1px at 52% 64%, #3b82f680 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 57% 40%, #ffffffb3 50%, transparent 51%),
+    radial-gradient(1px 1px at 61% 90%, #cbd5e180 50%, transparent 51%),
+    radial-gradient(1px 1px at 66% 20%, #2563eb99 50%, transparent 51%),
+    radial-gradient(2px 2px at 70% 52%, #38bdf8bb 0%, #38bdf833 45%, transparent 70%),
+    radial-gradient(1px 1px at 74% 6%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 36%, #3b82f699 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 82% 70%, #e8f1f7b3 50%, transparent 51%),
+    radial-gradient(1px 1px at 86% 14%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 89% 84%, #2563eb99 50%, transparent 51%),
+    radial-gradient(1px 1px at 93% 46%, #ffffff99 50%, transparent 51%),
+    radial-gradient(1px 1px at 97% 26%, #cbd5e180 50%, transparent 51%),
+    radial-gradient(1px 1px at 3% 48%, #ffffff80 50%, transparent 51%),
+    radial-gradient(1px 1px at 10% 92%, #ffffff66 50%, transparent 51%),
+    radial-gradient(1px 1px at 45% 94%, #3b82f680 50%, transparent 51%),
+    radial-gradient(1px 1px at 90% 60%, #ffffff66 50%, transparent 51%);
+}
+/* Almost-invisible atmospheric haze behind the lockup. */
+.splash-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(42% 34% at 50% 46%, #8fb4cc14 0%, transparent 70%);
+}
+/* Faint horizontal light passing through the center as the brand resolves. */
+.splash-sweep {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: min(46vw, 560px);
+  height: 1px;
+  transform: translate(-50%, -50%) scaleX(0);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #bfe6ff99 30%,
+    #ffffffee 50%,
+    #bfe6ff99 70%,
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+  animation: splashSweep 0.7s ease 0.35s both;
+}
+/* Controlled wordmark: large but never edge-to-edge (~50vw desktop). */
+.splash-title {
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  font-size: clamp(40px, 7.2vw, 116px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
+.splash-ocean,
+.splash-twin {
+  display: inline-block;
+  opacity: 0;
+}
+.splash-ocean {
+  color: #f2f5f7;
+  animation: splashReveal 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) 0.3s both;
+}
+.splash-twin {
+  color: #18c8e8;
+  text-shadow: 0 0 26px #18c8e838;
+  animation: splashReveal 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) 0.45s both;
+}
+/* Center-outward resolve: clip opens from the middle while the glyphs
+   sharpen into place. No flying letters, no typing. */
+@keyframes splashReveal {
+  from {
+    opacity: 0;
+    clip-path: inset(0 42% 0 42%);
+    filter: blur(7px);
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+@keyframes splashSweep {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scaleX(0);
+  }
+  30% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scaleX(1);
+  }
+}
+.splash-sub {
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  font-size: clamp(12px, 1.15vw, 17px);
+  letter-spacing: 0.24em;
+  padding-left: 0.24em;
+  color: #c3d2dd;
+  opacity: 0;
+  animation: splashSubRise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) 0.9s both;
+}
+@keyframes splashSubRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 0.9;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+@keyframes splashTwinkle {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+/* Wordmark contracts toward the center: scale + tracking + blur + fade —
+   becoming a point of origin, not a scale-down. */
+@keyframes splashDrift {
+  from {
+    opacity: 0;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-ocean,
+  .splash-twin,
+  .splash-sub {
+    animation-name: splashSubRise;
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+  .splash-title {
+    animation: none;
+  }
+  .splash-bg::before {
+    animation: none;
+  }
+  .splash-sweep,
+  .splash-drift {
+    display: none;
+  }
+  .splash.is-exit {
+    transition-duration: 0.2s;
+  }
+}
+@media (max-width: 900px) {
+  .splash-title {
+    font-size: 9vw;
+  }
+  .splash-sweep {
+    width: 62vw;
+  }
+}
+@media (max-width: 480px) {
+  .splash-title {
+    font-size: 11.5vw;
+    letter-spacing: 0.1em;
+  }
+  .splash-sub {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    padding-left: 0.2em;
+  }
+  .splash-sweep {
+    width: 80vw;
+  }
+}

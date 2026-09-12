@@ -20,6 +20,7 @@ import { RightPanel } from './components/RightPanel';
 import { BottomTimeline } from './components/BottomTimeline';
 import type { ExplorerSeed } from './experience/experienceState';
 import { useModelContext } from './services/useModelContext';
+import OceanIntro from './experience/OceanIntro';
 const OceanScene = lazy(() => import('./ocean/OceanScene'));
 
 const defaultRanges: Record<Variable, [number, number]> = {
@@ -35,12 +36,16 @@ export default function App({
   initialTime = 0,
   handoffSeed = null,
   active = true,
+  intro = false,
+  onEnter,
 }: {
   initialVariable?: Variable;
   initialDepth?: number;
   initialTime?: number;
   handoffSeed?: ExplorerSeed | null;
   active?: boolean;
+  intro?: boolean;
+  onEnter?: () => void;
 } = {}) {
   // ── Data state ──────────────────────────────────────────────────────
   const [dataset, setDataset] = useState<Dataset | null>(null);
@@ -126,12 +131,12 @@ export default function App({
   useModelContext({
     dataset: dataset?.id ?? null,
     synthetic: dataset?.synthetic ?? null,
-    variable: frame?.slice.variable ?? null,
-    depth: frame?.slice.depth ?? null,
-    time: frame?.slice.timestamp ?? null,
+    variable: activeFrame?.slice.variable ?? null,
+    depth: activeFrame?.slice.depth ?? null,
+    time: activeFrame?.slice.timestamp ?? null,
     mode,
     selectedInstrument: selected?.id ?? null,
-    updating: busy,
+    updating: busy || regionBusy,
   });
 
   // ── Bootstrap ─────────────────────────────────────────────────────────
@@ -291,6 +296,7 @@ export default function App({
   // ── Keyboard shortcuts ────────────────────────────────────────────────
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      if (intro) return;
       if ((e.target as HTMLElement).matches('input,select,textarea,button')) return;
       if (e.key.toLowerCase() === 'p') setPresentation((v) => !v);
       if (e.code === 'Space') {
@@ -306,10 +312,11 @@ export default function App({
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, []);
+  }, [intro]);
 
   // ── Helpers ───────────────────────────────────────────────────────────
   const select = (obs: Observation | null) => {
+    if (intro) return;
     inspectionRequest.current?.abort();
     setSelected(obs);
     setInspection(null);
@@ -329,6 +336,7 @@ export default function App({
   };
 
   async function inspect(lat: number, lon: number) {
+    if (intro) return;
     if (!activeFrame) return;
     if (analysis) {
       setAnalysisPick({ lat, lon });
@@ -548,7 +556,7 @@ export default function App({
   // ── Main render ───────────────────────────────────────────────────────
   return (
     <main
-      className={`app ${presentation ? 'presentation' : ''} ${scene === 'ocean' ? 'local-ocean' : ''} ${selected || inspection ? 'has-inspector' : ''}`}
+      className={`app ${intro ? 'intro-mode' : 'explorer-intro-exit'} ${presentation ? 'presentation' : ''} ${scene === 'ocean' ? 'local-ocean' : ''} ${selected || inspection ? 'has-inspector' : ''}`}
     >
       {/* ── Navbar ──────────────────────────────────────────────────── */}
       <header className="topbar">
@@ -580,8 +588,8 @@ export default function App({
         </nav>
         <div className="topbar-right">
           <span className="sys-status">
-            <i className={busy ? 'loading' : ''} />
-            {busy ? 'Updating' : 'System Ready'}
+            <i className={busy || regionBusy ? 'loading' : ''} />
+            {busy || regionBusy ? 'Updating' : 'System Ready'}
           </span>
           <span className="demo-badge">{dataset.synthetic ? 'DEMO DATA' : 'LOCAL DATA'}</span>
           <button
@@ -610,8 +618,8 @@ export default function App({
             opacity={opacity}
             exaggeration={exaggeration}
             grid={grid}
-            currents={currents}
-            observations={visibleSensors}
+            currents={!intro && currents}
+            observations={intro ? [] : visibleSensors}
             density={density}
             selected={selected?.id ?? null}
             onSelect={select}
@@ -690,6 +698,18 @@ export default function App({
         )}
       </div>
 
+      {intro && (
+        <OceanIntro
+          ready={!!baseName}
+          synthetic={dataset.synthetic}
+          onEnter={() => {
+            onEnter?.();
+            window.requestAnimationFrame(() =>
+              document.querySelector<HTMLAnchorElement>('.brand')?.focus(),
+            );
+          }}
+        />
+      )}
       {/* ── Floating hero text (top-left of globe area) ──────────────── */}
       {!presentation && (
         <div className="viewer-hero">

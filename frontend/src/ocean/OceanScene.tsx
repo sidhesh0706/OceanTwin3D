@@ -331,8 +331,9 @@ function CameraRig({
     }
     return t;
   }, [preset, bottom, focus?.x, focus?.z]);
+  const footprint = projection(dataset);
   const position = useMemo(() => {
-    const p = projection(dataset);
+    const p = footprint;
     // Near-frontal oblique for 3D (~20° down, ~5° azimuth): north stays up,
     // the diagonal-card effect is gone. Dives stay near-horizontal, the
     // surface map stays top-down. This direction is the ONLY framing change
@@ -362,7 +363,16 @@ function CameraRig({
           );
         }
     return target.clone().addScaledVector(direction, distance * 1.08);
-  }, [preset, underwater, dataset, bottom, target, size.width, size.height]);
+  }, [
+    preset,
+    underwater,
+    footprint.width,
+    footprint.height,
+    bottom,
+    target,
+    size.width,
+    size.height,
+  ]);
   useEffect(() => {
     moving.current = true;
   }, [preset, cameraKey, position]);

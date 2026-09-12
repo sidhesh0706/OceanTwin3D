@@ -1,0 +1,227 @@
+.app .viewer {
+  transition:
+    left 0.75s cubic-bezier(0.2, 0.7, 0.2, 1),
+    top 0.75s ease,
+    bottom 0.75s ease;
+}
+.intro-mode > :not(.viewer):not(.ocean-intro):not(.error-toast):not(.update-toast) {
+  display: none;
+}
+.intro-mode .viewer {
+  left: 24%;
+  top: 0;
+  bottom: 0;
+}
+.intro-mode .viewer:after {
+  display: none;
+}
+.ocean-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  color: #e6f0f4;
+  background: linear-gradient(90deg, #02070b 0%, #02070bf2 20%, #02070b88 38%, transparent 58%);
+  animation: introCopyIn 0.8s ease both;
+}
+.intro-header {
+  position: absolute;
+  top: 36px;
+  left: 5%;
+  right: 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.intro-wordmark {
+  font-size: 18px;
+  letter-spacing: 5px;
+  font-weight: 700;
+}
+.intro-wordmark > span {
+  color: #51d4d2;
+}
+.intro-edition {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #8fa8b6;
+}
+.intro-copy {
+  position: absolute;
+  left: 7%;
+  top: 50%;
+  transform: translateY(-47%);
+  width: min(490px, 38vw);
+}
+.intro-eyebrow {
+  color: #70ccc9;
+  font-size: 10px;
+  letter-spacing: 2.2px;
+  margin: 0 0 24px;
+}
+.intro-copy h1 {
+  font-size: clamp(36px, 4.4vw, 70px);
+  line-height: 1.12;
+  letter-spacing: -2.5px;
+  font-weight: 500;
+  margin: 0 0 22px;
+}
+.intro-copy h1 em {
+  font-style: normal;
+  color: #64d9d5;
+}
+.intro-description {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #a4bac7;
+  max-width: 375px;
+  margin: 0 0 30px;
+}
+.app .intro-enter {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 28px;
+  border: 1px solid #69e2d7;
+  background: #65ded0;
+  color: #08272c;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 16px 21px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.app .intro-enter:hover {
+  background: #99efe2;
+  transform: translateY(-2px);
+}
+.intro-enter:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 5px;
+}
+.intro-status {
+  font-size: 10px;
+  line-height: 1.6;
+  color: #8097a6;
+  max-width: 350px;
+  margin-top: 14px;
+}
+.intro-dimensions {
+  display: flex;
+  gap: 24px;
+  border-top: 1px solid #25404a80;
+  padding-top: 22px;
+  margin-top: 35px;
+  color: #5da7b1;
+  font-size: 10px;
+}
+.intro-dimensions b {
+  display: block;
+  font-weight: 400;
+  color: #b2c4ce;
+  font-size: 12px;
+  margin-top: 7px;
+}
+.intro-footer {
+  position: absolute;
+  bottom: 25px;
+  left: 5%;
+  right: 5%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #7d959f;
+}
+.intro-footer > span:first-child {
+  color: #baa577;
+}
+.explorer-intro-exit > .topbar,
+.explorer-intro-exit > .tool-rail,
+.explorer-intro-exit > .right-panel,
+.explorer-intro-exit > .scene-switcher {
+  animation: introControlsIn 0.65s ease both;
+}
+@keyframes introCopyIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes introControlsIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 800px) {
+  .intro-mode .viewer {
+    left: 0;
+    top: 28%;
+    bottom: 8%;
+  }
+  .ocean-intro {
+    background: linear-gradient(#02070b 0%, #02070b88 30%, transparent 60%);
+  }
+  .intro-header {
+    top: 23px;
+  }
+  .intro-edition {
+    display: none;
+  }
+  .intro-copy {
+    top: 90px;
+    left: 7%;
+    transform: none;
+    width: 86%;
+  }
+  .intro-copy h1 {
+    font-size: 38px;
+    letter-spacing: -1.5px;
+    margin-bottom: 12px;
+  }
+  .intro-eyebrow {
+    margin-bottom: 14px;
+    font-size: 9px;
+  }
+  .intro-description {
+    display: none;
+  }
+  .app .intro-enter {
+    padding: 12px 17px;
+  }
+  .intro-status {
+    max-width: 220px;
+  }
+  .intro-dimensions {
+    display: none;
+  }
+  .intro-footer {
+    font-size: 8px;
+    flex-direction: column;
+    bottom: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app .viewer {
+    transition: none;
+  }
+  .ocean-intro,
+  .explorer-intro-exit > * {
+    animation: none !important;
+  }
+  .app .intro-enter {
+    transition: none;
+  }
+}

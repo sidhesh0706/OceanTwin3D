@@ -9,7 +9,7 @@
 5. Keep the laptop plugged in and use a hardware-accelerated browser. Use the browser's normal zoom. Test the projector layout before speaking.
 6. On a fresh laptop, run `python setup_project.py` while online first. Normal default operation then uses local files.
 
-The default page now opens the teammate's shorter cinematic intro. Use `/?explore` for the direct scientific walkthrough, or [the intro](http://127.0.0.1:8000/?intro) when presenting the new entry sequence. The local ocean now includes a Reset view button and screen-space depth labels.
+The default page opens a clean introduction around the actual NASA-textured explorer globe. Select **Explore the ocean** to reveal the workspace without replacing the globe or resetting its position. Use `/?explore` to skip the intro, or [the intro](http://127.0.0.1:8000/?intro) for the presentation opening. The local ocean includes a Reset view button and screen-space depth labels.
 
 ## Five-minute walkthrough
 
@@ -54,3 +54,11 @@ Model frames use zero-based indices internally: frame 7 on screen is index 6, th
 ## Claims to keep precise
 
 This is a local prototype with synthetic fields and profiles. It does not provide a live INCOIS feed, production forecasting, assimilation or operational decisions. Region means are unweighted grid-cell means. Transects are fixed-depth sections. The isosurface view is a threshold-band preview. Coarse-grid coastal gaps and the absence of data poleward of ±75° are visible limitations.
+
+## UI verification — 12 September 2026
+
+The premium OceanTwin splash replays on every page refresh. The default route then shows a compact introduction around the same NASA-textured globe used by the explorer; entering reveals the workspace without replacing its Cesium viewer. The direct `/?explore` route skips the introduction after the splash.
+
+Open left toolbar panels reserve separate space below the scene navigation controls. Local ocean framing no longer resets just because a new time/depth frame arrives. Model context and the updating indicator follow the displayed regional frame.
+
+Validation: production TypeScript/Vite build; 28 backend tests and 3 frontend numerical tests passed. Browser checks covered refresh/entry, Argo selection and profile metrics, flat ocean rendering, time stepping, variable changes, volume/current modes, presentation mode, transect and regional statistics. NetCDF ingestion, atomic replacement, missing data and scientific calculations are covered by backend tests. Two existing dependency warnings remain (AnyIO deprecation and NumPy native layout warning); they did not fail tests. Device-specific GPU performance and projector appearance still require a rehearsal on the presentation machine. Demo scientific data is synthetic.

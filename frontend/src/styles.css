@@ -3312,6 +3312,33 @@ input[type='number'] {
   font-size: 11px;
   color: #95afbe;
 }
+/* Reserve a separate row above an open tool panel for scene navigation. */
+.app:has(> .fp) .scene-switcher {
+  top: calc(var(--top) + 12px);
+  left: calc(var(--rail) + 8px);
+  width: 260px;
+  max-width: calc(100% - var(--rail) - 16px);
+}
+.app:has(> .fp) .scene-switcher span,
+.app:has(> .fp) .viewer-hero {
+  visibility: hidden;
+}
+.app:has(> .fp) .scene-switcher span {
+  display: none;
+}
+.app > .fp {
+  top: calc(var(--top) + 62px);
+  max-width: calc(100% - var(--rail) - 16px);
+}
+.app > .fp .fp-body {
+  max-height: calc(100dvh - var(--top) - var(--bottom) - 130px);
+}
+.app.local-ocean > .fp {
+  top: calc(var(--top) + 138px);
+}
+.app.local-ocean > .fp .fp-body {
+  max-height: calc(100dvh - var(--top) - var(--bottom) - 206px);
+}
 /* Screen-space depth rail (local 3D analysis): compact annotation column
    projected from the depth axis every frame. Positioned entirely in screen
    pixels by the renderer — rows can never overlap or leave the viewport. */
