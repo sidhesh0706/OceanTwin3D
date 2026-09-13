@@ -8,7 +8,7 @@ import { readEnv } from '../experience/experienceState';
 import { dataColor } from '../ocean/colors';
 import { paintContinuousField, paintGlobalOcean } from '../cesium/ScientificField';
 import { sample } from '../ocean/CurrentParticles';
-import type { CameraPreset, Dataset, Frame, Mode, Observation, Variable } from '../types';
+import type { CameraPreset, Dataset, Frame, Mode, Observation, Variable, Land } from '../types';
 
 interface Props {
   showField: boolean;
@@ -46,6 +46,15 @@ import {
 
 export default function GlobeExplorer(props: Props) {
   const { enabled } = props;
+  const [coastline, setCoastline] = useState<Land | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/world-land.geojson', { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setCoastline)
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
   const host = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<CesiumViewer | null>(null);
   const layers = useRef<{
@@ -508,6 +517,7 @@ export default function GlobeExplorer(props: Props) {
 
       if (isGlobal) {
         paintGlobalOcean(canvas, rows, slice.latitudes, slice.longitudes, {
+          land: coastline,
           variable,
           min,
           max,
@@ -517,6 +527,7 @@ export default function GlobeExplorer(props: Props) {
         paintContinuousField(canvas, rows, {
           latitudes: slice.latitudes,
           longitudes: slice.longitudes,
+          land: coastline,
           variable,
           min,
           max,
@@ -545,7 +556,7 @@ export default function GlobeExplorer(props: Props) {
     } catch {
       /* A bad frame must not break the globe. */
     }
-  }, [frame, variable, mode, range, opacity, globeReady, props.showField]);
+  }, [frame, variable, mode, range, opacity, coastline, globeReady, props.showField]);
 
   // ── Domain outline (Regional datasets only, never global) ──────────────
   useEffect(() => {
@@ -647,6 +658,7 @@ export default function GlobeExplorer(props: Props) {
           canvas.height = VH;
           if (isGlobal) {
             paintGlobalOcean(canvas, layer, volume.latitudes, volume.longitudes, {
+              land: coastline,
               variable,
               min,
               max,
@@ -658,6 +670,7 @@ export default function GlobeExplorer(props: Props) {
             paintContinuousField(canvas, layer, {
               latitudes: volume.latitudes,
               longitudes: volume.longitudes,
+              land: coastline,
               variable,
               min,
               max,
@@ -710,7 +723,18 @@ export default function GlobeExplorer(props: Props) {
     } catch {
       /* A bad frame must not break the globe. */
     }
-  }, [frame, variable, mode, range, opacity, exaggeration, threshold, globeReady, props.showField]);
+  }, [
+    frame,
+    variable,
+    mode,
+    range,
+    opacity,
+    exaggeration,
+    threshold,
+    coastline,
+    globeReady,
+    props.showField,
+  ]);
 
   // ── Current field ──────────────────────────────────────────────────────
   // Direction, magnitude and distribution are backend u/v only — no fake particles.

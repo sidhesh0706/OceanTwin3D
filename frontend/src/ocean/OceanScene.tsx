@@ -646,13 +646,14 @@ function World(props: SceneProps) {
         mode={mode}
         threshold={threshold}
       />
-      {(mode === 'slice' || mode === 'currents') && (
+      {mode !== 'iso' && (
         <Slice
           dataset={dataset}
           field={frame.slice}
+          land={land}
           variable={variable}
           range={range}
-          opacity={mode === 'currents' ? opacity * 0.35 : opacity}
+          opacity={mode === 'volume' ? opacity * 0.3 : opacity}
           exaggeration={exaggeration}
           onInspect={onInspect}
         />

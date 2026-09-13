@@ -247,6 +247,10 @@ export function RightPanel({
           </div>
         </dl>
         {baseName && <p className="rp-attr">{baseName}</p>}
+        <p className="rp-attr">
+          Coastline-smoothed display · analysis uses the original grid. Dark ocean areas have no
+          model value.
+        </p>
       </section>
     </aside>
   );

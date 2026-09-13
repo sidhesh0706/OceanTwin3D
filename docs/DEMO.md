@@ -53,7 +53,7 @@ Model frames use zero-based indices internally: frame 7 on screen is index 6, th
 
 ## Claims to keep precise
 
-This is a local prototype with synthetic fields and profiles. It does not provide a live INCOIS feed, production forecasting, assimilation or operational decisions. Region means are unweighted grid-cell means. Transects are fixed-depth sections. The isosurface view is a threshold-band preview. Coarse-grid coastal gaps and the absence of data poleward of ±75° are visible limitations.
+This is a local prototype with synthetic fields and profiles. It does not provide a live INCOIS feed, production forecasting, assimilation or operational decisions. Region means are unweighted grid-cell means. Transects are fixed-depth sections. The isosurface view is a threshold-band preview. Coastal colors are smoothed for display; numerical inspection retains missing values. No model data exists poleward of ±75°.
 
 ## UI verification — 12 September 2026
 
@@ -62,3 +62,8 @@ The premium OceanTwin splash replays on every page refresh. The default route th
 Open left toolbar panels reserve separate space below the scene navigation controls. Local ocean framing no longer resets just because a new time/depth frame arrives. Model context and the updating indicator follow the displayed regional frame.
 
 Validation: production TypeScript/Vite build; 28 backend tests and 3 frontend numerical tests passed. Browser checks covered refresh/entry, Argo selection and profile metrics, flat ocean rendering, time stepping, variable changes, volume/current modes, presentation mode, transect and regional statistics. NetCDF ingestion, atomic replacement, missing data and scientific calculations are covered by backend tests. Two existing dependency warnings remain (AnyIO deprecation and NumPy native layout warning); they did not fail tests. Device-specific GPU performance and projector appearance still require a rehearsal on the presentation machine. Demo scientific data is synthetic.
+
+
+### Ocean coverage update — 13 September 2026
+
+Globe overlays and local flat/3D slices share coastline-clipped textures. Local slices use a 1024 × 768 display texture instead of dropping entire quads beside land. Missing land-grid nodes are extended from original wet neighbors within two grid steps for visualization only, then clipped against geographic polygons, including holes and wrapped longitudes. Missing offshore samples remain missing; local views show a neutral dark ocean background there. Source arrays, profiles, metrics and analysis remain unchanged. Volume mode includes a faint selected-depth reference slice; isosurface gaps remain intentional threshold filtering. Rectangular outer boundaries still represent the selected regional model domain.

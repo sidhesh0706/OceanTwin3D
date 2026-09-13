@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { Dataset, Field, Mode, Variable } from '../types';
+import type { Dataset, Field, Mode, Variable, Land } from '../types';
 import { projection, depthY } from './coordinates';
 import { dataColor } from './colors';
+import { paintContinuousField } from '../cesium/ScientificField';
 
 interface Props {
   dataset: Dataset;
@@ -82,40 +83,30 @@ export function Slice({
   opacity,
   exaggeration,
   onInspect,
-}: Props & { onInspect: (lat: number, lon: number) => void }) {
+  land,
+}: Props & { land: Land | null; onInspect: (lat: number, lon: number) => void }) {
   const group = useRef<THREE.Group>(null);
-  const geo = useMemo(() => {
-    const project = projection(dataset),
-      rows = field.values as (number | null)[][];
-    const nx = field.longitudes.length,
-      nz = field.latitudes.length;
-    const positions = new Float32Array(nx * nz * 3),
-      colors = new Float32Array(nx * nz * 3),
-      indices: number[] = [];
-    const color = new THREE.Color();
-    for (let j = 0; j < nz; j++)
-      for (let i = 0; i < nx; i++) {
-        const k = (j * nx + i) * 3;
-        positions[k] = project.x(field.longitudes[i]);
-        positions[k + 2] = project.z(field.latitudes[j]);
-        dataColor(rows[j][i] ?? range[0], variable, ...range, color).toArray(colors, k);
-        if (
-          i < nx - 1 &&
-          j < nz - 1 &&
-          [rows[j][i], rows[j][i + 1], rows[j + 1][i], rows[j + 1][i + 1]].every((v) => v !== null)
-        ) {
-          const a = j * nx + i;
-          indices.push(a, a + nx, a + 1, a + 1, a + nx, a + nx + 1);
-        }
-      }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    g.setIndex(indices);
-    g.computeVertexNormals();
-    return g;
-  }, [dataset, field, variable, range]);
-  useEffect(() => () => geo.dispose(), [geo]);
+  const project = projection(dataset);
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 768;
+    paintContinuousField(canvas, field.values as (number | null)[][], {
+      latitudes: field.latitudes,
+      longitudes: field.longitudes,
+      variable,
+      min: range[0],
+      max: range[1],
+      opacity: 1,
+      land,
+      oceanBackground: true,
+    });
+    const map = new THREE.CanvasTexture(canvas);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.anisotropy = 4;
+    return map;
+  }, [field, variable, range, land]);
+  useEffect(() => () => texture.dispose(), [texture]);
   useFrame((_, dt) => {
     if (group.current)
       group.current.position.y = THREE.MathUtils.damp(
@@ -125,21 +116,30 @@ export function Slice({
         dt,
       );
   });
+  const west = project.x(field.longitudes[0]),
+    east = project.x(field.longitudes.at(-1)!);
+  const south = project.z(field.latitudes[0]),
+    north = project.z(field.latitudes.at(-1)!);
   const click = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (e.delta > 5) return;
-    const p = projection(dataset);
-    onInspect(p.lat(e.point.z), p.lon(e.point.x));
+    onInspect(project.lat(e.point.z), project.lon(e.point.x));
   };
   return (
     <group ref={group}>
-      <mesh geometry={geo} onClick={click}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[(west + east) / 2, 0, (south + north) / 2]}
+        onClick={click}
+      >
+        <planeGeometry args={[east - west, south - north]} />
         <meshBasicMaterial
-          vertexColors
+          map={texture}
           side={THREE.DoubleSide}
           transparent
           opacity={opacity}
           depthWrite={false}
+          alphaTest={0.01}
         />
       </mesh>
     </group>
