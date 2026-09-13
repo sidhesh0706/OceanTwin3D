@@ -395,11 +395,9 @@ export function ToolRail(p: Props) {
               <Upload size={13} />
               {p.uploading ? 'Reading…' : 'Load NetCDF dataset'}
             </button>
-            {!p.dataset.synthetic && (
-              <button className="fp-text-btn" onClick={p.onDemo}>
-                Restore demo model
-              </button>
-            )}
+            <button className="fp-text-btn" onClick={p.onDemo}>
+              Restore demo model
+            </button>
           </div>
         </div>
       )}
